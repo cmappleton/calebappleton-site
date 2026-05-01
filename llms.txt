@@ -1,0 +1,39 @@
+# Caleb Appleton
+
+> Partner at Bison Ventures investing in Physical AI, TechBio, and applied AI software. Based in San Francisco.
+
+Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He focuses on early-stage (primarily seed) investments in three areas: physical AI and robotics, technology-enabled biology (TechBio), and applied AI software. He is based in the Presidio in San Francisco, California.
+
+## Role and firm
+
+- **Title:** Partner
+- **Firm:** Bison Ventures (https://bison.vc/)
+- **Stage:** Pre-seed and seed
+- **Sectors:** Physical AI · Robotics · TechBio · Computational Genetics · Applied AI software · Deep tech
+
+## Selected portfolio
+
+- [Cobot](https://www.co.bot/) — General-purpose robotics and physical AI (seed)
+- [Passkey](https://www.passkeytx.com/) — Computational genetics, TechBio (seed)
+
+## Writing
+
+Caleb writes about deep tech investing on the Bison Ventures blog, hosted on LinkedIn:
+
+- [Deep tech is the new SaaS](https://www.linkedin.com/pulse/deep-tech-new-saas-bisonvc-4lypc/)
+- [Why now: what's different about the robotics landscape today (Pt 1)](https://www.linkedin.com/pulse/why-now-whats-different-robotics-landscape-today-bisonvc-kne9e/)
+- [The evolution of robotics investing (Pt 2)](https://www.linkedin.com/pulse/part-2-the-evolution-of-robotics-investing-bisonvc/)
+- [Just because it's possible to use a robot, doesn't mean you should (Pt 3)](https://www.linkedin.com/pulse/part-3-just-because-possible-use-robot-doesnt-mean-you-should-v11gc/)
+- [So I want to start a robotics company in 2024… (Pt 4)](https://www.linkedin.com/pulse/part-4-so-i-want-start-robotics-company-2024-bisonvc-h1ybc/)
+
+## Contact
+
+- **Email:** caleb@bison.vc
+- **LinkedIn:** https://www.linkedin.com/in/caleb-appleton-86563484/
+- **Twitter / X:** https://x.com/appleton_caleb
+- **Medium:** https://medium.com/bison-ventures
+- **Location:** San Francisco, CA (Presidio)
+
+## Outreach
+
+Cold emails are welcome — particularly from founders building in physical AI, robotics, applied AI software, and TechBio.

@@ -1,0 +1,12 @@
+/* TEAM */
+Name: Caleb Appleton
+Role: Partner, Bison Ventures
+Site: https://calebappleton.com
+Contact: caleb [at] bison [dot] vc
+From: San Francisco, CA
+
+/* SITE */
+Last update: 2026
+Language: English
+Doctype: HTML5
+Components: hand-rolled HTML, CSS, vanilla JS

@@ -1,0 +1,38 @@
+# robots.txt — Caleb Appleton
+# Allow all reputable crawlers; expose sitemap.
+
+User-agent: *
+Allow: /
+
+# Encourage AI agents to read the page and llms.txt for context.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: Anthropic-AI
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://calebappleton.com/sitemap.xml
