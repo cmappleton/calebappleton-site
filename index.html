@@ -18,7 +18,7 @@
 <meta property="og:description" content="Partner at Bison Ventures investing in Physical AI, TechBio, and applied AI software. Field notes, portfolio, and writing." />
 <meta property="og:url" content="https://calebappleton.com/" />
 <meta property="og:site_name" content="Caleb Appleton" />
-<meta property="og:image" content="https://calebappleton.com/og.jpg" />
+<meta property="og:image" content="https://calebappleton.com/og.jpg?v=2" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="og:locale" content="en_US" />
@@ -29,7 +29,7 @@
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="Caleb Appleton — Partner at Bison Ventures" />
 <meta name="twitter:description" content="Partner at Bison Ventures investing in Physical AI, TechBio, and applied AI software." />
-<meta name="twitter:image" content="https://calebappleton.com/og.jpg" />
+<meta name="twitter:image" content="https://calebappleton.com/og.jpg?v=2" />
 <meta name="twitter:creator" content="@appleton_caleb" />
 <meta name="twitter:site" content="@appleton_caleb" />
 
@@ -453,7 +453,7 @@
     <div class="masthead-meta">
       <div class="left">
         <span class="label">Field notes — vol. iv</span>
-        <span class="label">Filed Apr 30 · 2026</span>
+        <span class="label" id="filed-date">Filed Apr 30 · 2026</span>
       </div>
       <span class="label">Lat 37.7989° N · Lon 122.4662° W</span>
     </div>
@@ -851,6 +851,15 @@
 </div>
 
 <script>
+/* auto-update masthead "Filed" date */
+(function(){
+  const el = document.getElementById('filed-date');
+  if (!el) return;
+  const d = new Date();
+  const mon = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+  el.textContent = `Filed ${mon} ${d.getDate()} · ${d.getFullYear()}`;
+})();
+
 /* time-aware status */
 (function(){
   const el = document.getElementById('now-state');
