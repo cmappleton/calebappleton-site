@@ -18,7 +18,12 @@ Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He f
 
 ## Writing
 
-Caleb writes about deep tech investing on the Bison Ventures blog, hosted on LinkedIn:
+Selected articles:
+
+- [Great products don't market themselves](https://www.fastcompany.com/91599924/great-products-dont-market-themselves) — Fast Company, Sep 2026
+- [A founder's guide to hiring in the AI talent wars](https://www.fastcompany.com/91409962/a-founders-guide-to-hiring-in-the-ai-talent-wars) — Fast Company, Sep 2025
+
+Caleb also writes about deep tech investing on the Bison Ventures blog, hosted on LinkedIn:
 
 - [Deep tech is the new SaaS](https://www.linkedin.com/pulse/deep-tech-new-saas-bisonvc-4lypc/)
 - [Why now: what's different about the robotics landscape today (Pt 1)](https://www.linkedin.com/pulse/why-now-whats-different-robotics-landscape-today-bisonvc-kne9e/)
