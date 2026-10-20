@@ -15,6 +15,7 @@ Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He f
 
 - [Cobot](https://www.co.bot/) — General-purpose robotics and physical AI (seed)
 - [Passkey](https://www.passkeytx.com/) — Computational genetics, TechBio (seed)
+- [Eka Robotics](https://ekarobotics.com/) — Superhuman dexterity for robots; Vision-Force-Action model (Series A)
 
 ## Writing
 
