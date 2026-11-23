@@ -12,94 +12,14 @@ const track = (name, data) => { try { if (window.va) window.va('event', { name, 
 const view = document.getElementById('rig-canvas');
 if (view) init();
 
-/* ---------- body plan ---------- */
-const BONES = [[0, 1], [0, 2], [1, 2], [0, 3], [3, 4], [1, 5], [5, 6], [0, 7], [7, 8], [1, 9], [9, 10]];
-const MUSCLES = [[2, 3], [0, 4], [2, 5], [1, 6], [2, 7], [0, 8], [2, 9], [1, 10]];
-const FEET = new Set([4, 6, 8, 10]);
-const LEGS = [[0, 3, 4, true], [1, 5, 6, true], [0, 7, 8, false], [1, 9, 10, false]];   // hip, knee, foot, near?
-const N = 11, NM = MUSCLES.length, TH = 1 + NM * 3, SH = TH + 1, GLEN = SH + 1;
-const DT = 1 / 120, G = 9.81, ITER = 8, TRIAL = 10, STEPS = Math.round(TRIAL / DT);
-const RANGE = i => i === 0 ? [0.5, 1.8] : i >= TH ? [0.8, 1.25] : ((i - 1) % 3 === 0 ? [0, 0.2] : (i - 1) % 3 === 1 ? [0, Math.PI * 2] : [-0.12, 0.12]);
-
-function randomGenome() {
-  const g = new Array(GLEN);
-  for (let i = 0; i < GLEN; i++) { const [a, b] = RANGE(i); g[i] = a + Math.random() * (b - a); }
-  return g;
-}
-function clampGenome(g) {
-  for (let i = 0; i < GLEN; i++) {
-    const [a, b] = RANGE(i);
-    if (i > 0 && i < TH && (i - 1) % 3 === 1) g[i] = ((g[i] % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-    else g[i] = Math.max(a, Math.min(b, g[i]));
-  }
-  return g;
-}
-
-function makeSim(g) {
-  const th = 0.42 * g[TH], sh = 0.42 * g[SH], hipY = th + sh + 0.02, L = 0.95;
-  const pos = [[0, hipY], [L, hipY], [L / 2, hipY + 0.28], [0.06, hipY - th], [0, 0.02], [L + 0.06, hipY - th], [L, 0.02], [-0.04, hipY - th], [-0.02, 0.02], [L - 0.04, hipY - th], [L - 0.02, 0.02]];
-  const s = { x: new Float64Array(N), y: new Float64Array(N), px: new Float64Array(N), py: new Float64Array(N), cx: new Float64Array(N), c: new Uint8Array(N), b0: [], m0: [], ml: new Float64Array(NM), t: 0, n: 0 };
-  pos.forEach(([x, y], i) => { s.x[i] = s.px[i] = x; s.y[i] = s.py[i] = y; });
-  const len = (a, b) => Math.hypot(pos[a][0] - pos[b][0], pos[a][1] - pos[b][1]);
-  s.b0 = BONES.map(([a, b]) => len(a, b));
-  s.m0 = MUSCLES.map(([a, b]) => len(a, b));
-  s.th = th; s.sh = sh;
-  return s;
-}
-
-function solve(s, a, b, L, k) {
-  const dx = s.x[b] - s.x[a], dy = s.y[b] - s.y[a];
-  const d = Math.sqrt(dx * dx + dy * dy) || 1e-9;
-  const f = (d - L) / d * 0.5 * k;
-  s.x[a] += dx * f; s.y[a] += dy * f; s.x[b] -= dx * f; s.y[b] -= dy * f;
-}
-
-function step(s, g) {
-  const { x, y, px, py, cx, c } = s;
-  // planted feet stay put until a muscle lifts them
-  for (let i = 0; i < N; i++) { c[i] = y[i] <= 0.001 ? 1 : 0; cx[i] = x[i]; }
-  for (let i = 0; i < N; i++) {
-    const vx = (x[i] - px[i]) * 0.998, vy = (y[i] - py[i]) * 0.998;
-    px[i] = x[i]; py[i] = y[i];
-    x[i] += vx; y[i] += vy - G * DT * DT;
-  }
-  const w = 2 * Math.PI * g[0] * s.t;
-  for (let m = 0; m < NM; m++) s.ml[m] = s.m0[m] * (1 + g[1 + 3 * m] * Math.sin(w + g[2 + 3 * m]) + g[3 + 3 * m]);
-  for (let it = 0; it < ITER; it++) {
-    for (let k = 0; k < BONES.length; k++) solve(s, BONES[k][0], BONES[k][1], s.b0[k], 1);
-    for (let m = 0; m < NM; m++) solve(s, MUSCLES[m][0], MUSCLES[m][1], s.ml[m], 0.18);
-    for (let i = 0; i < N; i++) {
-      if (y[i] < 0) y[i] = 0;
-      if (c[i] && FEET.has(i) && y[i] <= 0.002) x[i] = cx[i];
-    }
-  }
-  for (let i = 0; i < N; i++) {
-    if (y[i] <= 0.0005) {
-      if (!FEET.has(i)) x[i] = px[i] + (x[i] - px[i]) * 0.2;
-      py[i] = y[i];
-      if (FEET.has(i)) px[i] = x[i];
-    }
-  }
-  s.t += DT; s.n++;
-}
-
-const fallen = s => s.y[2] < 0.25 || s.y[0] < 0.08 || s.y[1] < 0.08 || s.y[2] < Math.min(s.y[0], s.y[1]);
-const score = (dist, fell) => fell ? dist * 0.4 - 0.5 : dist;   // falling costs most of the distance
-
-function evaluate(g) {
-  const s = makeSim(g);
-  const x0 = (s.x[0] + s.x[1]) / 2;
-  for (let i = 0; i < STEPS; i++) {
-    step(s, g);
-    if (fallen(s)) return score((s.x[0] + s.x[1]) / 2 - x0, true);
-    if ((i & 127) === 0 && !isFinite(s.x[0])) return -10;
-  }
-  return score((s.x[0] + s.x[1]) / 2 - x0, false);
-}
+/* ---------- the body, physics and scoring live in gaitsim.js, which the server runs too ---------- */
+import { LEGS, GLEN, TRIAL, STEPS, ELITE, RANGE, randomGenome, clampGenome, makeSim, step, fallen, score, evaluate } from './gaitsim.js';
+// every visitor trains the same robot: gaitshare.js seeds from the shared best gaits and reports back
+import { connectShare } from './gaitshare.js';
 
 /* ---------- training state ---------- */
 const KEY = 'calebappleton.gait.v2';
-const POP = 20, ELITE = 5;
+const POP = 20;
 
 function load() {
   try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && d.v === 1 && Array.isArray(d.elites) && d.elites.length) return d; } catch (_) {}
@@ -131,7 +51,8 @@ async function init() {
     gen: document.getElementById('rig-gen'), best: document.getElementById('rig-best'),
     tried: document.getElementById('rig-tried'), time: document.getElementById('rig-time'),
     pause: document.getElementById('rig-pause'), reset: document.getElementById('rig-reset'), play: document.getElementById('rig-play'),
-    chart: document.getElementById('rig-chart')
+    chart: document.getElementById('rig-chart'),
+    visitors: document.getElementById('rig-visitors'), mine: document.getElementById('rig-mine')   // shared readouts, if the page has them
   };
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   try { await document.fonts.load('extra-condensed 800 20px Archivo'); } catch (_) {}
@@ -174,13 +95,24 @@ async function init() {
   window.addEventListener('pagehide', () => save(st));
   document.addEventListener('visibilitychange', () => { if (document.hidden) save(st); });
 
+  /* the shared robot: when shared gaits beat the one on screen, replay the new best */
+  const share = connectShare(() => st, {
+    onShared(added) {
+      if (added && st.elites.length && st.elites[0].f > replay.f) { replay.start(); if (!replay.playing) render(); }
+      readouts();
+    }
+  });
+
   /* ---------- readouts ---------- */
   const fmtTime = ms => { const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = s % 60; return h ? `${h} h ${m} min` : m ? `${m} min ${r} s` : `${r} s`; };
   function readouts() {
-    els.gen.textContent = st.gen.toLocaleString();
+    const t = share.totals();   // everyone's totals when shared, this browser's otherwise
+    els.gen.textContent = t.gen.toLocaleString();
     els.best.textContent = st.elites.length ? `${Math.max(0, st.elites[0].f).toFixed(2)} m` : '0.00 m';
-    els.tried.textContent = st.tried.toLocaleString();
-    els.time.textContent = fmtTime(st.ms);
+    els.tried.textContent = t.tried.toLocaleString();
+    els.time.textContent = fmtTime(t.ms);
+    if (els.visitors) { els.visitors.textContent = t.visitors.toLocaleString(); els.visitors.parentNode.hidden = !t.shared; }
+    if (els.mine) { els.mine.textContent = t.mine.toLocaleString(); els.mine.parentNode.hidden = !t.shared; }
     drawChart();
   }
   function drawChart() {
@@ -229,6 +161,7 @@ async function init() {
     clearTimeout(armed); armed = 0;
     els.reset.classList.remove('is-armed'); els.reset.textContent = 'Start over';
     try { localStorage.removeItem(KEY); } catch (_) {}
+    share.solo();   // this visit now trains from scratch; the shared robot keeps its progress
     st = { gen: 0, tried: 0, ms: 0, elites: [], hist: [] };
     queue = Array.from({ length: POP }, randomGenome); evaluated = []; genStart = performance.now();
     replay.start(true);
@@ -317,7 +250,7 @@ async function init() {
       this.f = best ? best.f : 0;
       this.sim = makeSim(this.g);
       this.x0 = (this.sim.x[0] + this.sim.x[1]) / 2;
-      this.tried = st.tried;
+      this.tried = share.totals().tried;
       if (!rig || rig.th !== this.sim.th || rig.sh !== this.sim.sh || force) buildRig(this.sim);
       camX = this.x0 + 1.2;
       this.hold = 0;

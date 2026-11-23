@@ -1,0 +1,10 @@
+{
+  "name": "calebappleton-site",
+  "private": true,
+  "description": "Static site with one Vercel Function (api/gait.js). No build step and no dependencies; this file only marks the .js files as ES modules for Node.",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "serve": "node test/serve.js"
+  }
+}

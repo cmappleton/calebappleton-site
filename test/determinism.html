@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex" />
+<title>Sim fingerprint</title>
+<style>body{font:16px/1.5 system-ui,sans-serif;margin:24px;color:#1D2766;background:#E8EAE4}code{font-size:20px}</style>
+</head>
+<body>
+<p>Robot training sim fingerprint in this browser. Every engine should show <code>50c13c57</code>.</p>
+<p id="out">Running...</p>
+<script type="module">
+import { fingerprint } from './fingerprint.js';
+const out = document.getElementById('out');
+setTimeout(() => {
+  const t = performance.now(), { hash, best } = fingerprint();
+  out.innerHTML = `<code id="hash">${hash}</code> ${hash === '50c13c57' ? 'matches' : 'DOES NOT MATCH'} (best ${best}, ${Math.round(performance.now() - t)} ms)<br>${navigator.userAgent}`;
+  document.title = `Sim fingerprint ${hash}`;
+}, 50);
+</script>
+</body>
+</html>
