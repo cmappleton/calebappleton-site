@@ -15,7 +15,7 @@ const MUSCLES = [[2, 3], [0, 4], [2, 5], [1, 6], [2, 7], [0, 8], [2, 9], [1, 10]
 const FEET = new Set([4, 6, 8, 10]);
 const LEGS = [[0, 3, 4, true], [1, 5, 6, true], [0, 7, 8, false], [1, 9, 10, false]];   // hip, knee, foot, near?
 const N = 11, NM = MUSCLES.length, TH = 1 + NM * 3, SH = TH + 1, GLEN = SH + 1;
-const DT = 1 / 120, G = 9.81, ITER = 8, TRIAL = 10;
+const DT = 1 / 120, G = 9.81, ITER = 8, TRIAL = 10, STEPS = Math.round(TRIAL / DT);
 const RANGE = i => i === 0 ? [0.5, 1.8] : i >= TH ? [0.8, 1.25] : ((i - 1) % 3 === 0 ? [0, 0.2] : (i - 1) % 3 === 1 ? [0, Math.PI * 2] : [-0.12, 0.12]);
 
 function randomGenome() {
@@ -35,7 +35,7 @@ function clampGenome(g) {
 function makeSim(g) {
   const th = 0.42 * g[TH], sh = 0.42 * g[SH], hipY = th + sh + 0.02, L = 0.95;
   const pos = [[0, hipY], [L, hipY], [L / 2, hipY + 0.28], [0.06, hipY - th], [0, 0.02], [L + 0.06, hipY - th], [L, 0.02], [-0.04, hipY - th], [-0.02, 0.02], [L - 0.04, hipY - th], [L - 0.02, 0.02]];
-  const s = { x: new Float64Array(N), y: new Float64Array(N), px: new Float64Array(N), py: new Float64Array(N), cx: new Float64Array(N), c: new Uint8Array(N), b0: [], m0: [], ml: new Float64Array(NM), t: 0 };
+  const s = { x: new Float64Array(N), y: new Float64Array(N), px: new Float64Array(N), py: new Float64Array(N), cx: new Float64Array(N), c: new Uint8Array(N), b0: [], m0: [], ml: new Float64Array(NM), t: 0, n: 0 };
   pos.forEach(([x, y], i) => { s.x[i] = s.px[i] = x; s.y[i] = s.py[i] = y; });
   const len = (a, b) => Math.hypot(pos[a][0] - pos[b][0], pos[a][1] - pos[b][1]);
   s.b0 = BONES.map(([a, b]) => len(a, b));
@@ -77,21 +77,21 @@ function step(s, g) {
       if (FEET.has(i)) px[i] = x[i];
     }
   }
-  s.t += DT;
+  s.t += DT; s.n++;
 }
 
 const fallen = s => s.y[2] < 0.25 || s.y[0] < 0.08 || s.y[1] < 0.08 || s.y[2] < Math.min(s.y[0], s.y[1]);
+const score = (dist, fell) => fell ? dist * 0.4 - 0.5 : dist;   // falling costs most of the distance
 
 function evaluate(g) {
   const s = makeSim(g);
   const x0 = (s.x[0] + s.x[1]) / 2;
-  const steps = Math.round(TRIAL / DT);
-  for (let i = 0; i < steps; i++) {
+  for (let i = 0; i < STEPS; i++) {
     step(s, g);
-    if (fallen(s)) return ((s.x[0] + s.x[1]) / 2 - x0) * 0.4 - 0.5;
+    if (fallen(s)) return score((s.x[0] + s.x[1]) / 2 - x0, true);
     if ((i & 127) === 0 && !isFinite(s.x[0])) return -10;
   }
-  return (s.x[0] + s.x[1]) / 2 - x0;
+  return score((s.x[0] + s.x[1]) / 2 - x0, false);
 }
 
 /* ---------- training state ---------- */
@@ -135,6 +135,7 @@ async function init() {
 
   let st = load();
   if (!st) st = { gen: 0, tried: 0, ms: 0, elites: [], hist: [] };
+  st.elites = st.elites.map(e => ({ g: e.g, f: evaluate(e.g) })).sort((a, b) => b.f - a.f);
   let queue = st.elites.length ? children(st) : Array.from({ length: POP }, randomGenome);
   let evaluated = [];
   let paused = false, genStart = performance.now();
@@ -154,7 +155,7 @@ async function init() {
       }
       if (!queue.length && performance.now() - genStart > 1100) {
         const pool = [...st.elites, ...evaluated].sort((a, b) => b.f - a.f);
-        st.elites = pool.slice(0, ELITE).map(e => ({ g: e.g.map(v => +v.toFixed(5)), f: +e.f.toFixed(4) }));
+        st.elites = pool.slice(0, ELITE).map(e => ({ g: e.g.slice(), f: e.f }));
         evaluated = [];
         st.gen++;
         st.hist.push(+st.elites[0].f.toFixed(3));
@@ -312,6 +313,7 @@ async function init() {
       this.f = best ? best.f : 0;
       this.sim = makeSim(this.g);
       this.x0 = (this.sim.x[0] + this.sim.x[1]) / 2;
+      this.tried = st.tried;
       if (!rig || rig.th !== this.sim.th || rig.sh !== this.sim.sh || force) buildRig(this.sim);
       camX = this.x0 + 1.2;
       this.hold = 0;
@@ -333,16 +335,39 @@ async function init() {
     const [sx] = toScreen(replay.x0, 0), topY = 22;
     html += `<path d="M ${sx} ${topY - 8} V ${H - 34}" stroke="#A9AFC6" stroke-dasharray="12 4 2 4" fill="none"/>`;
     const [mx] = toScreen(mid, 0);
+    const fell = fallen(s), done = fell || s.n >= STEPS;
+    const red = '#F0441C', redInk = '#BF2F0E', dimInk = done ? red : '#1D2766';
     if (Math.abs(mx - sx) > 14) {
       const d = mx > sx ? 1 : -1;
-      html += `<path d="M ${sx} ${topY} H ${mx}" stroke="#1D2766" stroke-width="1" fill="none"/>`;
-      html += `<path d="M ${sx + d * 8} ${topY - 4} L ${sx} ${topY} L ${sx + d * 8} ${topY + 4} M ${mx - d * 8} ${topY - 4} L ${mx} ${topY} L ${mx - d * 8} ${topY + 4}" stroke="#1D2766" stroke-width="1" fill="none"/>`;
+      html += `<path d="M ${sx} ${topY} H ${mx}" stroke="${dimInk}" stroke-width="1" fill="none"/>`;
+      html += `<path d="M ${sx + d * 8} ${topY - 4} L ${sx} ${topY} L ${sx + d * 8} ${topY + 4} M ${mx - d * 8} ${topY - 4} L ${mx} ${topY} L ${mx - d * 8} ${topY + 4}" stroke="${dimInk}" stroke-width="1" fill="none"/>`;
       html += `<path d="M ${mx} ${topY - 8} V ${toScreen(mid, s.y[2] + 0.2)[1]}" stroke="#A9AFC6" stroke-width="1" fill="none"/>`;
     }
     html += `<rect x="${(sx + mx) / 2 - 30}" y="${topY - 9}" width="60" height="18" fill="#E8EAE4"/>`;
-    html += `<text x="${(sx + mx) / 2}" y="${topY + 4}" text-anchor="middle" font-size="13" fill="#1D2766" style="font-family:Archivo;font-weight:700;font-stretch:75%">${dist.toFixed(2)} m</text>`;
-    html += `<text x="${W - 12}" y="${topY + 4}" text-anchor="end" font-size="12" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">t = ${Math.min(TRIAL, s.t).toFixed(1)} s</text>`;
-    if (replay.fresh) html += `<text x="${W - 12}" y="${topY + 22}" text-anchor="end" font-size="12" fill="#BF2F0E" style="font-family:Archivo;font-weight:600">New best</text>`;
+    html += `<text x="${(sx + mx) / 2}" y="${topY + 4}" text-anchor="middle" font-size="13" fill="${done ? redInk : '#1D2766'}" style="font-family:Archivo;font-weight:700;font-stretch:75%">${dist.toFixed(2)} m</text>`;
+    // the run's clock, and what this gait is: the winner so far of a search
+    // narrow canvases keep the score up here, clear of the robot
+    const narrow = W < 560, sc = Math.max(0, score(dist, fell)).toFixed(2);
+    const stack = [[done ? (fell ? `Fell at ${s.t.toFixed(1)} s` : `Finished at ${TRIAL} s`) : `t = ${s.t.toFixed(1)} s of ${TRIAL}`, done ? redInk : '#555D8B', 12, 600]];
+    if (done && narrow) { stack.push([`Score ${sc} m`, redInk, 15, 800]); if (fell) stack.push(['Falling cuts the score', '#555D8B', 12, 600]); }
+    if (replay.tried) stack.push([`Best of ${replay.tried.toLocaleString()} gaits tried`, '#555D8B', 12, 600]);
+    if (replay.fresh) stack.push(['New best', redInk, 12, 600]);
+    let ly = topY + 4;
+    stack.forEach(([txt, fill, size, wt], i) => {
+      if (i) ly += size + 4;
+      html += `<text x="${W - 12}" y="${ly}" text-anchor="end" font-size="${size}" fill="${fill}" style="font-family:Archivo;font-weight:${wt};font-stretch:75%">${txt}</text>`;
+    });
+    // at the end of the run: a finish line where it stopped, with its score
+    if (done) {
+      const [, fy] = toScreen(mid, 0), flagY = topY + 50;
+      const left = mx > W * 0.62, tx = left ? mx - 22 : mx + 22;
+      html += `<path d="M ${mx} ${fy} V ${flagY}" stroke="${red}" stroke-width="1.5" fill="none"/>`;
+      html += `<path d="M ${mx} ${flagY} l ${left ? -16 : 16} 6 l ${left ? 16 : -16} 6 z" fill="${red}"/>`;
+      if (!narrow) {
+        html += `<text x="${tx}" y="${flagY + 11}" text-anchor="${left ? 'end' : 'start'}" font-size="16" fill="${redInk}" style="font-family:Archivo;font-weight:800;font-stretch:75%">Score ${sc} m</text>`;
+        if (fell) html += `<text x="${tx}" y="${flagY + 28}" text-anchor="${left ? 'end' : 'start'}" font-size="12" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">Falling cuts the score</text>`;
+      }
+    }
     overlay.innerHTML = html;
   }
 
@@ -366,8 +391,8 @@ async function init() {
     if (!inView || document.hidden) return;
     const s = replay.sim;
     if (replay.playing) {
-      if (s.t < TRIAL && !fallen(s)) { step(s, replay.g); step(s, replay.g); }
-      else if ((replay.hold += 1 / 60) > 1.2) { replay.start(); if (reduce) replay.playing = false; }
+      if (s.n < STEPS && !fallen(s)) { for (let k = 0; k < 2 && s.n < STEPS && !fallen(s); k++) step(s, replay.g); }
+      else if ((replay.hold += 1 / 60) > 2.6) { replay.start(); if (reduce) replay.playing = false; }
     }
     render();
     if (replay.playing || !reduce) raf = requestAnimationFrame(loop);
