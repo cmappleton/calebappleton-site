@@ -1,0 +1,8 @@
+# Files that stay in the repo but are not deployed.
+
+# Full-size photo originals (about 32 MB). Pages use the resized copies in
+# img/opt/, and vercel.json redirects old links to the originals there too.
+/img/*.jpg
+
+# The one-off script that builds js/vendor/three.min.js.
+/tools
