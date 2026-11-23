@@ -173,12 +173,22 @@ export function connectShare(getSt, { onShared } = {}) {
     // what the readouts show: shared totals plus this browser's unreported work, or the local numbers when alone
     totals() {
       const st = getSt();
-      if (!shared || solo) return { shared: false, gen: st.gen, tried: st.tried, ms: st.ms, visitors: 0, mine: me.mine.tried };
+      // shared: showing everyone's numbers; solo: training from scratch; online: there is a shared robot to go back to
+      if (!shared || solo) return { shared: false, solo, online: !!shared, gen: st.gen, tried: st.tried, ms: st.ms, visitors: 0, mine: me.mine.tried };
       note();
       const sum = k => shared[k] + me.pend[k] + flight[k];
-      return { shared: true, gen: sum('gen'), tried: sum('tried'), ms: sum('ms'), visitors: shared.visitors, mine: me.mine.tried };
+      return { shared: true, solo, online: true, gen: sum('gen'), tried: sum('tried'), ms: sum('ms'), visitors: shared.visitors, mine: me.mine.tried };
     },
-    // Start over: train this visit from scratch, without the shared gaits; work still counts toward the totals
-    solo() { solo = true; }
+    // Start from scratch: train this visit from random gaits, without the shared ones; the work still counts toward the totals
+    solo() { solo = true; },
+    // Back to the shared best: take the shared gaits again, then fetch the latest
+    rejoin() {
+      if (!shared) return false;
+      solo = false;
+      const added = merge(shared.elites);
+      if (onShared) onShared(added);
+      if (!busy) pull();
+      return true;
+    }
   };
 }

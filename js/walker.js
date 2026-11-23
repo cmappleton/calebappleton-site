@@ -1,7 +1,8 @@
 /* Robot training: a four-legged walker that learns to move while the page is open.
    The body is a Verlet spring-mass model; each gait is a set of muscle rhythms.
    A small evolutionary loop keeps whatever travels farthest in ten seconds.
-   Progress is saved in this browser (localStorage). */
+   This browser's progress is saved in localStorage, and gaitshare.js shares the best gaits
+   with every other visitor through /api/gait/. */
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as C from './cell3d.js';
@@ -51,6 +52,7 @@ async function init() {
     gen: document.getElementById('rig-gen'), best: document.getElementById('rig-best'),
     tried: document.getElementById('rig-tried'), time: document.getElementById('rig-time'),
     pause: document.getElementById('rig-pause'), reset: document.getElementById('rig-reset'), play: document.getElementById('rig-play'),
+    back: document.getElementById('rig-back'),
     chart: document.getElementById('rig-chart'),
     visitors: document.getElementById('rig-visitors'), mine: document.getElementById('rig-mine')   // shared readouts, if the page has them
   };
@@ -113,6 +115,7 @@ async function init() {
     els.time.textContent = fmtTime(t.ms);
     if (els.visitors) { els.visitors.textContent = t.visitors.toLocaleString(); els.visitors.parentNode.hidden = !t.shared; }
     if (els.mine) { els.mine.textContent = t.mine.toLocaleString(); els.mine.parentNode.hidden = !t.shared; }
+    if (els.back) els.back.hidden = !(t.solo && t.online);
     drawChart();
   }
   function drawChart() {
@@ -154,18 +157,24 @@ async function init() {
   let armed = 0;
   els.reset.addEventListener('click', () => {
     if (!armed) {
-      els.reset.classList.add('is-armed'); els.reset.textContent = 'Click again to erase';
-      armed = setTimeout(() => { armed = 0; els.reset.classList.remove('is-armed'); els.reset.textContent = 'Start over'; }, 3000);
+      els.reset.classList.add('is-armed'); els.reset.textContent = 'Click again to start from scratch';
+      armed = setTimeout(() => { armed = 0; els.reset.classList.remove('is-armed'); els.reset.textContent = 'Start from scratch'; }, 3000);
       return;
     }
     clearTimeout(armed); armed = 0;
-    els.reset.classList.remove('is-armed'); els.reset.textContent = 'Start over';
+    els.reset.classList.remove('is-armed'); els.reset.textContent = 'Start from scratch';
     try { localStorage.removeItem(KEY); } catch (_) {}
     share.solo();   // this visit now trains from scratch; the shared robot keeps its progress
     st = { gen: 0, tried: 0, ms: 0, elites: [], hist: [] };
     queue = Array.from({ length: POP }, randomGenome); evaluated = []; genStart = performance.now();
     replay.start(true);
     readouts();
+  });
+  // after starting from scratch, this takes the shared best gaits again (the button only shows when there's a shared robot)
+  if (els.back) els.back.addEventListener('click', () => {
+    if (share.rejoin()) { replay.start(true); if (!replay.playing) render(); }
+    readouts();
+    els.reset.focus();   // the button hides itself, so keep keyboard focus nearby
   });
 
   /* ---------- the 3D replay of the best gait ---------- */

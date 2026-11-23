@@ -105,18 +105,21 @@
           <canvas id="rig-canvas" role="img" aria-label="A four-legged walker replaying its best gait so far"></canvas>
         </div>
         <div class="rig-side">
-          <p>This small four-legged robot is learning to walk. While this page is open, your browser trains it with an evolutionary algorithm. It tries variations of the gait, scores each one by how far it travels in ten seconds, and breeds the best. Progress is saved in your browser, so it picks up where it left off next time.</p>
+          <p>This small four-legged robot is learning to walk, and every visitor trains the same one. While this page is open, your browser trains it with an evolutionary algorithm. It tries variations of the gait, scores each one by how far it travels in ten seconds, and breeds the best. About once a minute it sends its best gait to the site, which checks the score and keeps the top five for the next visitor to build on.</p>
           <dl class="rig-readout">
             <div><dt>Generation</dt><dd id="rig-gen">0</dd></div>
             <div><dt>Best distance</dt><dd id="rig-best">0.00 m</dd></div>
             <div><dt>Gaits tried</dt><dd id="rig-tried">0</dd></div>
             <div><dt>Training time</dt><dd id="rig-time">0 s</dd></div>
+            <div hidden><dt>Visitors</dt><dd id="rig-visitors">0</dd></div>
+            <div hidden><dt>Gaits you tried</dt><dd id="rig-mine">0</dd></div>
           </dl>
           <canvas class="rig-chart" id="rig-chart" role="img" aria-label="Best distance by generation"></canvas>
           <div class="rig-actions">
             <button type="button" class="btn" id="rig-pause">Pause training</button>
             <button type="button" class="btn" id="rig-play" hidden>Play the walk</button>
-            <button type="button" class="btn btn-quiet" id="rig-reset">Start over</button>
+            <button type="button" class="btn btn-quiet" id="rig-reset">Start from scratch</button>
+            <button type="button" class="btn btn-quiet" id="rig-back" hidden>Back to the shared best</button>
           </div>
         </div>
       </div>
