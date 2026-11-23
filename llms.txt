@@ -4,6 +4,16 @@
 
 Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He focuses on early-stage (primarily seed) investments in three areas: physical AI and robotics, technology-enabled biology (TechBio), and applied AI software. He is based in the Presidio in San Francisco, California.
 
+## Pages
+
+- [Home](https://calebappleton.com/): a robot arm workcell; each object on the shelves opens a page
+- [About](https://calebappleton.com/about/): background from Texas and Georgia Tech through Bain, Innovation Endeavors, TuneIn and Bison
+- [Companies](https://calebappleton.com/companies/): current portfolio and earlier investments
+- [Writing](https://calebappleton.com/writing/): articles, blog posts, podcasts and press
+- [Adventures](https://calebappleton.com/adventures/): photos from bikepacking, ski touring and gravel rides
+- [Robot training](https://calebappleton.com/robot-training/): teach a small robot to walk in the browser
+- [Contact](https://calebappleton.com/contact/)
+
 ## Role and firm
 
 - **Title:** Partner
@@ -11,11 +21,21 @@ Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He f
 - **Stage:** Pre-seed and seed
 - **Sectors:** Physical AI · Robotics · TechBio · Computational Genetics · Applied AI software · Deep tech
 
-## Selected portfolio
+## Portfolio
 
-- [Eka Robotics](https://ekarobotics.com/) — Superhuman dexterity for robots; Vision-Force-Action model (Series A)
-- [Cobot](https://www.co.bot/) — General-purpose robotics and physical AI (Series B)
-- [Passkey](https://www.passkeytx.com/) — Computational genetics, TechBio (seed)
+Companies Caleb works with at Bison Ventures (full list at https://calebappleton.com/companies/):
+
+- [Eka Robotics](https://ekarobotics.com/): superhuman dexterity for robots in the physical world (Series A)
+- [Cobot](https://www.co.bot/): general purpose robotics and physical AI (Series B)
+- [Vivodyne](https://vivodyne.com/): human tissue data at scale, pre-clinically (Series A)
+- Stealth TechBio: next-generation radiopharmaceutical platform (Seed)
+- [Cosmon](https://cosmon.com/): the AI toolchain for physical world engineering (Seed)
+- [Grid Aero](https://grid.aero/): autonomous air logistics platform (Series A)
+- [Inner Logic](https://innerlogic.io/): physical AI for healthcare (Seed)
+- [Sleuth](https://sleuthinsights.com/): answering complex, strategic biopharma questions using AI (Seed)
+- [Passkey](https://www.passkeytx.com/): tackling complex diseases using computational genetics (Seed)
+
+Earlier investments at Innovation Endeavors include Skylo Technologies, Eikon Therapeutics (IPO), Vicarious Surgical (IPO), Dewpoint Therapeutics and BigHat Biosciences.
 
 ## Writing
 

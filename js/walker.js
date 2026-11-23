@@ -1,0 +1,388 @@
+/* Robot training: a four-legged walker that learns to move while the page is open.
+   The body is a Verlet spring-mass model; each gait is a set of muscle rhythms.
+   A small evolutionary loop keeps whatever travels farthest in ten seconds.
+   Progress is saved in this browser (localStorage). */
+import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import * as C from './cell3d.js';
+
+const view = document.getElementById('rig-canvas');
+if (view) init();
+
+/* ---------- body plan ---------- */
+const BONES = [[0, 1], [0, 2], [1, 2], [0, 3], [3, 4], [1, 5], [5, 6], [0, 7], [7, 8], [1, 9], [9, 10]];
+const MUSCLES = [[2, 3], [0, 4], [2, 5], [1, 6], [2, 7], [0, 8], [2, 9], [1, 10]];
+const FEET = new Set([4, 6, 8, 10]);
+const LEGS = [[0, 3, 4, true], [1, 5, 6, true], [0, 7, 8, false], [1, 9, 10, false]];   // hip, knee, foot, near?
+const N = 11, NM = MUSCLES.length, TH = 1 + NM * 3, SH = TH + 1, GLEN = SH + 1;
+const DT = 1 / 120, G = 9.81, ITER = 8, TRIAL = 10;
+const RANGE = i => i === 0 ? [0.5, 1.8] : i >= TH ? [0.8, 1.25] : ((i - 1) % 3 === 0 ? [0, 0.2] : (i - 1) % 3 === 1 ? [0, Math.PI * 2] : [-0.12, 0.12]);
+
+function randomGenome() {
+  const g = new Array(GLEN);
+  for (let i = 0; i < GLEN; i++) { const [a, b] = RANGE(i); g[i] = a + Math.random() * (b - a); }
+  return g;
+}
+function clampGenome(g) {
+  for (let i = 0; i < GLEN; i++) {
+    const [a, b] = RANGE(i);
+    if (i > 0 && i < TH && (i - 1) % 3 === 1) g[i] = ((g[i] % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+    else g[i] = Math.max(a, Math.min(b, g[i]));
+  }
+  return g;
+}
+
+function makeSim(g) {
+  const th = 0.42 * g[TH], sh = 0.42 * g[SH], hipY = th + sh + 0.02, L = 0.95;
+  const pos = [[0, hipY], [L, hipY], [L / 2, hipY + 0.28], [0.06, hipY - th], [0, 0.02], [L + 0.06, hipY - th], [L, 0.02], [-0.04, hipY - th], [-0.02, 0.02], [L - 0.04, hipY - th], [L - 0.02, 0.02]];
+  const s = { x: new Float64Array(N), y: new Float64Array(N), px: new Float64Array(N), py: new Float64Array(N), cx: new Float64Array(N), c: new Uint8Array(N), b0: [], m0: [], ml: new Float64Array(NM), t: 0 };
+  pos.forEach(([x, y], i) => { s.x[i] = s.px[i] = x; s.y[i] = s.py[i] = y; });
+  const len = (a, b) => Math.hypot(pos[a][0] - pos[b][0], pos[a][1] - pos[b][1]);
+  s.b0 = BONES.map(([a, b]) => len(a, b));
+  s.m0 = MUSCLES.map(([a, b]) => len(a, b));
+  s.th = th; s.sh = sh;
+  return s;
+}
+
+function solve(s, a, b, L, k) {
+  const dx = s.x[b] - s.x[a], dy = s.y[b] - s.y[a];
+  const d = Math.sqrt(dx * dx + dy * dy) || 1e-9;
+  const f = (d - L) / d * 0.5 * k;
+  s.x[a] += dx * f; s.y[a] += dy * f; s.x[b] -= dx * f; s.y[b] -= dy * f;
+}
+
+function step(s, g) {
+  const { x, y, px, py, cx, c } = s;
+  // planted feet stay put until a muscle lifts them
+  for (let i = 0; i < N; i++) { c[i] = y[i] <= 0.001 ? 1 : 0; cx[i] = x[i]; }
+  for (let i = 0; i < N; i++) {
+    const vx = (x[i] - px[i]) * 0.998, vy = (y[i] - py[i]) * 0.998;
+    px[i] = x[i]; py[i] = y[i];
+    x[i] += vx; y[i] += vy - G * DT * DT;
+  }
+  const w = 2 * Math.PI * g[0] * s.t;
+  for (let m = 0; m < NM; m++) s.ml[m] = s.m0[m] * (1 + g[1 + 3 * m] * Math.sin(w + g[2 + 3 * m]) + g[3 + 3 * m]);
+  for (let it = 0; it < ITER; it++) {
+    for (let k = 0; k < BONES.length; k++) solve(s, BONES[k][0], BONES[k][1], s.b0[k], 1);
+    for (let m = 0; m < NM; m++) solve(s, MUSCLES[m][0], MUSCLES[m][1], s.ml[m], 0.18);
+    for (let i = 0; i < N; i++) {
+      if (y[i] < 0) y[i] = 0;
+      if (c[i] && FEET.has(i) && y[i] <= 0.002) x[i] = cx[i];
+    }
+  }
+  for (let i = 0; i < N; i++) {
+    if (y[i] <= 0.0005) {
+      if (!FEET.has(i)) x[i] = px[i] + (x[i] - px[i]) * 0.2;
+      py[i] = y[i];
+      if (FEET.has(i)) px[i] = x[i];
+    }
+  }
+  s.t += DT;
+}
+
+const fallen = s => s.y[2] < 0.25 || s.y[0] < 0.08 || s.y[1] < 0.08 || s.y[2] < Math.min(s.y[0], s.y[1]);
+
+function evaluate(g) {
+  const s = makeSim(g);
+  const x0 = (s.x[0] + s.x[1]) / 2;
+  const steps = Math.round(TRIAL / DT);
+  for (let i = 0; i < steps; i++) {
+    step(s, g);
+    if (fallen(s)) return ((s.x[0] + s.x[1]) / 2 - x0) * 0.4 - 0.5;
+    if ((i & 127) === 0 && !isFinite(s.x[0])) return -10;
+  }
+  return (s.x[0] + s.x[1]) / 2 - x0;
+}
+
+/* ---------- training state ---------- */
+const KEY = 'calebappleton.gait.v2';
+const POP = 20, ELITE = 5;
+
+function load() {
+  try { const d = JSON.parse(localStorage.getItem(KEY)); if (d && d.v === 1 && Array.isArray(d.elites) && d.elites.length) return d; } catch (_) {}
+  return null;
+}
+function save(st) {
+  try { localStorage.setItem(KEY, JSON.stringify({ v: 1, gen: st.gen, tried: st.tried, ms: st.ms, elites: st.elites, hist: st.hist })); } catch (_) {}
+}
+
+function gauss() { let u = 0, v = 0; while (!u) u = Math.random(); while (!v) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+
+function children(st) {
+  const kids = [];
+  const anneal = Math.max(0.22, 1 / (1 + st.gen / 260));
+  const pick = () => st.elites[Math.floor(Math.pow(Math.random(), 2) * st.elites.length)];
+  while (kids.length < POP - ELITE) {
+    const a = pick().g.slice();
+    if (Math.random() < 0.3) { const b = pick().g; for (let i = 0; i < GLEN; i++) if (Math.random() < 0.5) a[i] = b[i]; }
+    const big = Math.random() < 0.08 ? 4 : 1;
+    for (let i = 0; i < GLEN; i++) if (Math.random() < 0.35) { const [lo, hi] = RANGE(i); a[i] += gauss() * (hi - lo) * 0.08 * anneal * big; }
+    kids.push(clampGenome(a));
+  }
+  return kids;
+}
+
+/* ---------- page ---------- */
+async function init() {
+  const els = {
+    gen: document.getElementById('rig-gen'), best: document.getElementById('rig-best'),
+    tried: document.getElementById('rig-tried'), time: document.getElementById('rig-time'),
+    pause: document.getElementById('rig-pause'), reset: document.getElementById('rig-reset'), play: document.getElementById('rig-play'),
+    chart: document.getElementById('rig-chart')
+  };
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  try { await document.fonts.load('extra-condensed 800 20px Archivo'); } catch (_) {}
+
+  let st = load();
+  if (!st) st = { gen: 0, tried: 0, ms: 0, elites: [], hist: [] };
+  let queue = st.elites.length ? children(st) : Array.from({ length: POP }, randomGenome);
+  let evaluated = [];
+  let paused = false, genStart = performance.now();
+
+  /* training runs in short time slices while the page is visible */
+  let lastTick = performance.now();
+  function train() {
+    const t = performance.now();
+    if (!document.hidden && !paused) st.ms += Math.min(250, t - lastTick);
+    lastTick = t;
+    if (!document.hidden && !paused) {
+      const budget = t + 6;
+      while (queue.length && performance.now() < budget) {
+        const g = queue.pop();
+        evaluated.push({ g, f: evaluate(g) });
+        st.tried++;
+      }
+      if (!queue.length && performance.now() - genStart > 1100) {
+        const pool = [...st.elites, ...evaluated].sort((a, b) => b.f - a.f);
+        st.elites = pool.slice(0, ELITE).map(e => ({ g: e.g.map(v => +v.toFixed(5)), f: +e.f.toFixed(4) }));
+        evaluated = [];
+        st.gen++;
+        st.hist.push(+st.elites[0].f.toFixed(3));
+        if (st.hist.length > 400) st.hist = st.hist.filter((_, i) => i % 2 === 0);
+        queue = children(st);
+        genStart = performance.now();
+        if (st.gen % 5 === 0) save(st);
+      }
+    }
+    setTimeout(train, 40);
+  }
+  train();
+  window.addEventListener('pagehide', () => save(st));
+  document.addEventListener('visibilitychange', () => { if (document.hidden) save(st); });
+
+  /* ---------- readouts ---------- */
+  const fmtTime = ms => { const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, r = s % 60; return h ? `${h} h ${m} min` : m ? `${m} min ${r} s` : `${r} s`; };
+  function readouts() {
+    els.gen.textContent = st.gen.toLocaleString();
+    els.best.textContent = st.elites.length ? `${Math.max(0, st.elites[0].f).toFixed(2)} m` : '0.00 m';
+    els.tried.textContent = st.tried.toLocaleString();
+    els.time.textContent = fmtTime(st.ms);
+    drawChart();
+  }
+  function drawChart() {
+    const c = els.chart, dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); }
+    const g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const pad = { l: 42, r: 12, t: 12, b: 20 };
+    g.strokeStyle = '#1D2766'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(pad.l, pad.t); g.lineTo(pad.l, h - pad.b); g.lineTo(w - pad.r, h - pad.b); g.stroke();
+    g.fillStyle = '#555D8B'; g.font = '600 11px Archivo, sans-serif';
+    g.fillText('Best distance by generation', pad.l + 6, pad.t + 9);
+    const hist = st.hist;
+    if (hist.length < 2) return;
+    const max = Math.max(1, ...hist), min = Math.min(0, ...hist);
+    g.textAlign = 'right';
+    g.fillText(`${max.toFixed(1)} m`, pad.l - 4, pad.t + 9);
+    g.fillText('0', pad.l - 4, h - pad.b);
+    g.textAlign = 'left';
+    g.strokeStyle = '#1D2766'; g.lineWidth = 1.6;
+    g.beginPath();
+    hist.forEach((v, i) => {
+      const x = pad.l + (w - pad.l - pad.r) * i / (hist.length - 1);
+      const y = (h - pad.b) - (h - pad.t - pad.b - 14) * (v - min) / (max - min || 1);
+      i ? g.lineTo(x, y) : g.moveTo(x, y);
+    });
+    g.stroke();
+  }
+  readouts();
+  setInterval(readouts, 400);
+
+  els.pause.addEventListener('click', () => {
+    paused = !paused;
+    els.pause.textContent = paused ? 'Resume training' : 'Pause training';
+    if (paused) save(st);
+  });
+  let armed = 0;
+  els.reset.addEventListener('click', () => {
+    if (!armed) {
+      els.reset.classList.add('is-armed'); els.reset.textContent = 'Click again to erase';
+      armed = setTimeout(() => { armed = 0; els.reset.classList.remove('is-armed'); els.reset.textContent = 'Start over'; }, 3000);
+      return;
+    }
+    clearTimeout(armed); armed = 0;
+    els.reset.classList.remove('is-armed'); els.reset.textContent = 'Start over';
+    try { localStorage.removeItem(KEY); } catch (_) {}
+    st = { gen: 0, tried: 0, ms: 0, elites: [], hist: [] };
+    queue = Array.from({ length: POP }, randomGenome); evaluated = []; genStart = performance.now();
+    replay.start(true);
+    readouts();
+  });
+
+  /* ---------- the 3D replay of the best gait ---------- */
+  const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: view, alpha: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  renderer.setClearColor(0x000000, 0);
+  const host = view.parentNode;
+  host.style.position = 'relative';
+  const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  overlay.setAttribute('aria-hidden', 'true');
+  overlay.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
+  host.appendChild(overlay);
+  const TILT = 0.2, CT = Math.cos(TILT), ST = Math.sin(TILT);
+  const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
+  camera.rotation.x = -TILT;
+  let scene, pen, rig, W, H, viewW = 5.2, camX = 0.5;
+
+  function buildScene() {
+    W = view.clientWidth; H = view.clientHeight;
+    renderer.setSize(W, H, false);
+    pen = new C.Pen(renderer, { mode: 'tone' });
+    scene = new THREE.Scene();
+    const ground = pen.solid(new THREE.BoxGeometry(400, 1.2, 1.8), 0.05, { threshold: 30 });
+    ground.position.set(150, -0.6, 0.3); scene.add(ground);
+    rig = null;
+    viewW = Math.max(3.6, Math.min(6.5, W / 120));
+    overlay.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  }
+
+  function buildRig(sim) {
+    if (rig) scene.remove(rig.root);
+    const root = new THREE.Group();
+    const torso = new THREE.Group();
+    torso.add(pen.solid(new RoundedBoxGeometry(1.08, 0.26, 0.5, 3, 0.05), 0.58));
+    const panel = pen.solid(new THREE.BoxGeometry(0.82, 0.14, 0.02), 0.08); panel.position.z = 0.256; torso.add(panel);
+    const head = pen.solid(new RoundedBoxGeometry(0.18, 0.22, 0.34, 3, 0.04), 0.62); head.position.set(0.62, 0.02, 0); torso.add(head);
+    const handle = pen.solid(new THREE.TorusGeometry(0.1, 0.02, 8, 24, Math.PI), 0.85, { threshold: 70 }); handle.position.set(-0.22, 0.13, 0); torso.add(handle);
+    root.add(torso);
+    const legs = LEGS.map(([hip, knee, foot, near]) => {
+      const z = near ? 0.3 : -0.3;
+      const thigh = pen.solid(new THREE.CapsuleGeometry(0.05, sim.th, 4, 12), near ? 0.12 : 0.32, { edges: false });
+      const shin = pen.solid(new THREE.CapsuleGeometry(0.032, sim.sh, 4, 12), near ? 0.86 : 0.92, { edges: false });
+      const kj = pen.solid(new THREE.CylinderGeometry(0.058, 0.058, 0.07, 18).rotateX(Math.PI / 2), 0.7);
+      const ft = pen.solid(new THREE.SphereGeometry(0.05, 14, 10), 0.85, { edges: false });
+      const hp = pen.solid(new THREE.CylinderGeometry(0.085, 0.085, 0.08, 20).rotateX(Math.PI / 2), near ? 0.2 : 0.4);
+      [thigh, shin, kj, ft, hp].forEach(m => root.add(m));
+      return { hip, knee, foot, z, thigh, shin, kj, ft, hp };
+    });
+    scene.add(root);
+    rig = { root, torso, legs, th: sim.th, sh: sim.sh };
+  }
+
+  const up = new THREE.Vector3(0, 1, 0), tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3();
+  function poseRig(s) {
+    const x0 = s.x[0], y0 = s.y[0], x1 = s.x[1], y1 = s.y[1];
+    rig.torso.position.set((x0 + x1) / 2, (y0 + y1) / 2 + 0.05, 0);
+    rig.torso.rotation.z = Math.atan2(y1 - y0, x1 - x0);
+    const place = (m, a, b, z) => {
+      tmpA.set(s.x[a], s.y[a], z); tmpB.set(s.x[b], s.y[b], z);
+      m.position.copy(tmpA).lerp(tmpB, 0.5);
+      m.quaternion.setFromUnitVectors(up, tmpB.sub(tmpA).normalize());
+    };
+    rig.legs.forEach(l => {
+      place(l.thigh, l.hip, l.knee, l.z);
+      place(l.shin, l.knee, l.foot, l.z);
+      l.kj.position.set(s.x[l.knee], s.y[l.knee], l.z);
+      l.ft.position.set(s.x[l.foot], Math.max(0.05, s.y[l.foot] + 0.03), l.z);
+      l.hp.position.set(s.x[l.hip], s.y[l.hip], l.z);
+    });
+  }
+
+  const toScreen = (x, y, z = 0) => [(x - (camX - viewW / 2)) / viewW * W, H - 34 - (y * CT - z * ST) * (W / viewW)];
+
+  const replay = {
+    sim: null, g: null, f: 0, hold: 0, playing: !reduce, fresh: false,
+    start(force) {
+      const best = st.elites[0];
+      this.g = best ? best.g : randomGenome();
+      const newBest = best && best.f !== this.f;
+      this.fresh = newBest && this.f !== 0;
+      this.f = best ? best.f : 0;
+      this.sim = makeSim(this.g);
+      this.x0 = (this.sim.x[0] + this.sim.x[1]) / 2;
+      if (!rig || rig.th !== this.sim.th || rig.sh !== this.sim.sh || force) buildRig(this.sim);
+      camX = this.x0 + 1.2;
+      this.hold = 0;
+    }
+  };
+
+  function drawOverlay(s) {
+    const mid = (s.x[0] + s.x[1]) / 2, dist = mid - replay.x0;
+    const scale = W / viewW;
+    let html = '';
+    const x0 = Math.floor(camX - viewW / 2 - 1), x1 = Math.ceil(camX + viewW / 2 + 1);
+    for (let m = x0 * 2; m <= x1 * 2; m++) {
+      const wx = replay.x0 + m / 2;
+      const [X, Y] = toScreen(wx, 0, 0.55);
+      const major = m % 2 === 0;
+      html += `<path d="M ${X} ${Y} v ${major ? 9 : 5}" stroke="#1D2766" stroke-width="1"/>`;
+      if (major && m >= 0) html += `<text x="${X + 3}" y="${Y + 9}" font-size="11" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">${m / 2} m</text>`;
+    }
+    const [sx] = toScreen(replay.x0, 0), topY = 22;
+    html += `<path d="M ${sx} ${topY - 8} V ${H - 34}" stroke="#A9AFC6" stroke-dasharray="12 4 2 4" fill="none"/>`;
+    const [mx] = toScreen(mid, 0);
+    if (Math.abs(mx - sx) > 14) {
+      const d = mx > sx ? 1 : -1;
+      html += `<path d="M ${sx} ${topY} H ${mx}" stroke="#1D2766" stroke-width="1" fill="none"/>`;
+      html += `<path d="M ${sx + d * 8} ${topY - 4} L ${sx} ${topY} L ${sx + d * 8} ${topY + 4} M ${mx - d * 8} ${topY - 4} L ${mx} ${topY} L ${mx - d * 8} ${topY + 4}" stroke="#1D2766" stroke-width="1" fill="none"/>`;
+      html += `<path d="M ${mx} ${topY - 8} V ${toScreen(mid, s.y[2] + 0.2)[1]}" stroke="#A9AFC6" stroke-width="1" fill="none"/>`;
+    }
+    html += `<rect x="${(sx + mx) / 2 - 30}" y="${topY - 9}" width="60" height="18" fill="#E8EAE4"/>`;
+    html += `<text x="${(sx + mx) / 2}" y="${topY + 4}" text-anchor="middle" font-size="13" fill="#1D2766" style="font-family:Archivo;font-weight:700;font-stretch:75%">${dist.toFixed(2)} m</text>`;
+    html += `<text x="${W - 12}" y="${topY + 4}" text-anchor="end" font-size="12" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">t = ${Math.min(TRIAL, s.t).toFixed(1)} s</text>`;
+    if (replay.fresh) html += `<text x="${W - 12}" y="${topY + 22}" text-anchor="end" font-size="12" fill="#BF2F0E" style="font-family:Archivo;font-weight:600">New best</text>`;
+    overlay.innerHTML = html;
+  }
+
+  function render() {
+    const s = replay.sim;
+    const mid = (s.x[0] + s.x[1]) / 2;
+    camX += (mid + 0.6 - camX) * 0.06;
+    const hw = viewW / 2, hh = hw * H / W;
+    camera.left = camX - hw; camera.right = camX + hw;
+    camera.top = (H - 34) / (W / viewW); camera.bottom = -34 / (W / viewW);
+    camera.position.set(0, 60 * ST, 60 * CT);
+    camera.updateProjectionMatrix();
+    poseRig(s);
+    renderer.render(scene, camera);
+    drawOverlay(s);
+  }
+
+  let inView = false, raf = 0;
+  function loop() {
+    raf = 0;
+    if (!inView || document.hidden) return;
+    const s = replay.sim;
+    if (replay.playing) {
+      if (s.t < TRIAL && !fallen(s)) { step(s, replay.g); step(s, replay.g); }
+      else if ((replay.hold += 1 / 60) > 1.2) { replay.start(); if (reduce) replay.playing = false; }
+    }
+    render();
+    if (replay.playing || !reduce) raf = requestAnimationFrame(loop);
+  }
+  const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
+
+  buildScene();
+  replay.start(true);
+  render();
+  if (reduce && els.play) {
+    els.play.hidden = false;
+    els.play.addEventListener('click', () => { replay.start(); replay.playing = true; kick(); });
+  }
+  new IntersectionObserver(entries => { inView = entries[0].isIntersecting; if (inView) kick(); }, { threshold: 0.05 }).observe(view);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) kick(); });
+  let lastW = view.clientWidth;
+  new ResizeObserver(() => { if (Math.abs(view.clientWidth - lastW) > 2) { lastW = view.clientWidth; buildScene(); replay.start(true); render(); } }).observe(view);
+}

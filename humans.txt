@@ -6,7 +6,7 @@ Contact: caleb [at] bison [dot] vc
 From: San Francisco, CA
 
 /* SITE */
-Last update: 2026
+Last update: November 2026
 Language: English
 Doctype: HTML5
-Components: hand-rolled HTML, CSS, vanilla JS
+Components: hand-rolled HTML, CSS and JavaScript, with three.js for drawing and Matter.js for physics

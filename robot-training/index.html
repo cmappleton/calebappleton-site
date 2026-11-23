@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<title>Teach a robot to walk | Caleb Appleton</title>
+<meta name="description" content="Teach a small four-legged robot to walk. While the page is open, your browser tries new gaits and keeps the ones that travel farthest." />
+<meta name="author" content="Caleb Appleton" />
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+<link rel="canonical" href="https://calebappleton.com/robot-training/" />
+
+<meta property="og:type" content="website" />
+<meta property="og:title" content="Teach a robot to walk | Caleb Appleton" />
+<meta property="og:description" content="Teach a small four-legged robot to walk. While the page is open, your browser tries new gaits and keeps the ones that travel farthest." />
+<meta property="og:url" content="https://calebappleton.com/robot-training/" />
+<meta property="og:site_name" content="Caleb Appleton" />
+<meta property="og:image" content="https://calebappleton.com/og.jpg?v=2" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:locale" content="en_US" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Teach a robot to walk | Caleb Appleton" />
+<meta name="twitter:description" content="Teach a small four-legged robot to walk. While the page is open, your browser tries new gaits and keeps the ones that travel farthest." />
+<meta name="twitter:image" content="https://calebappleton.com/og.jpg?v=2" />
+<meta name="twitter:creator" content="@appleton_caleb" />
+<meta name="twitter:site" content="@appleton_caleb" />
+
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'><g fill='none' stroke='%231D2766' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M 4 25.5 L 24 25.5'/><path d='M 3.5 25 C 3 25 3 26 3.5 26 L 24.5 26 C 25 26 25 25 24.5 25'/></g><circle cx='7' cy='26.5' r='1.2' fill='%231D2766'/><circle cx='21' cy='26.5' r='1.2' fill='%231D2766'/><g fill='none' stroke='%231D2766' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'><path d='M14 9 C 8 8 4 12 4 17 C 4 21 6.5 24 10 24 L 18 24 C 21.5 24 24 21 24 17 C 24 12 20 8 14 9 Z'/><path d='M14 9 C 14 7 14.5 5 16 4'/><path d='M16 7 C 18.5 4.5 21 5 22 7.5 C 20 9 17.5 8.5 16 7 Z'/></g><circle cx='11' cy='16' r='1.6' fill='%231D2766'/><circle cx='17' cy='16' r='1.6' fill='%231D2766'/><circle cx='11.5' cy='15.5' r='0.45' fill='%23E8EAE4'/><circle cx='17.5' cy='15.5' r='0.45' fill='%23E8EAE4'/><path d='M11.5 19.5 C 12.5 21 15.5 21 16.5 19.5' fill='none' stroke='%231D2766' stroke-width='1.3' stroke-linecap='round'/></svg>" />
+<meta name="theme-color" content="#E8EAE4" />
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Caleb Appleton",
+          "item": "https://calebappleton.com/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Robot training",
+          "item": "https://calebappleton.com/robot-training/"
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/site.css">
+<script type="speculationrules">{"prefetch":[{"where":{"href_matches":"/*"},"eagerness":"moderate"}]}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" crossorigin>
+<script type="module" src="/js/walker.js"></script>
+<script src="/js/site.js" defer></script>
+</head>
+<body>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<nav class="nav" aria-label="Main">
+  <a class="nav-mark" href="/">
+    <svg viewBox="0 0 28 28" aria-hidden="true" data-mark-svg></svg>
+    <span>Caleb Appleton</span>
+  </a>
+  <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
+  <div class="nav-links" id="nav-links">
+    <a href="/about/">About</a>
+    <a href="/companies/">Companies</a>
+    <a href="/writing/">Writing</a>
+    <a href="/adventures/">Adventures</a>
+    <a href="/robot-training/" aria-current="page">Robot training</a>
+    <a href="/contact/">Contact</a>
+  </div>
+</nav>
+
+<main id="main">
+
+  <article class="sheet" id="robot-training" aria-labelledby="rig-title">
+    <div class="sheet-inner">
+      <header class="sheet-head">
+        <h1 id="rig-title">Teach a robot to walk</h1>
+        <p class="sheet-no">Page 6 of 7</p>
+      </header>
+
+      <div class="rig">
+        <div class="rig-view">
+          <canvas id="rig-canvas" role="img" aria-label="A four-legged walker replaying its best gait so far"></canvas>
+        </div>
+        <div class="rig-side">
+          <p>This small four-legged robot is learning to walk. While this page is open, your browser tries out variations of its gait. It keeps the ones that travel farthest in ten seconds and builds on them. Progress is saved in your browser, so it picks up where it left off next time.</p>
+          <dl class="rig-readout">
+            <div><dt>Generation</dt><dd id="rig-gen">0</dd></div>
+            <div><dt>Best distance</dt><dd id="rig-best">0.00 m</dd></div>
+            <div><dt>Gaits tried</dt><dd id="rig-tried">0</dd></div>
+            <div><dt>Training time</dt><dd id="rig-time">0 s</dd></div>
+          </dl>
+          <canvas class="rig-chart" id="rig-chart" role="img" aria-label="Best distance by generation"></canvas>
+          <div class="rig-actions">
+            <button type="button" class="btn" id="rig-pause">Pause training</button>
+            <button type="button" class="btn" id="rig-play" hidden>Play the walk</button>
+            <button type="button" class="btn btn-quiet" id="rig-reset">Start over</button>
+          </div>
+        </div>
+      </div>
+
+      <nav class="pager" aria-label="Previous and next pages">
+        <a class="pager-prev" href="/adventures/" rel="prev"><span class="pager-k">Back to page 5</span><span class="pager-v"><span class="balloon">5</span>Adventures</span></a>
+        <a class="pager-next" href="/contact/" rel="next"><span class="pager-k">Continued on page 7</span><span class="pager-v"><span class="balloon">7</span>Contact</span></a>
+      </nav>
+    </div>
+  </article>
+
+</main>
+
+<footer class="sheet site-foot">
+  <div class="sheet-inner">
+    <p class="foot-mail">caleb at bison dot vc</p>
+    <p>Cold emails are welcome.</p>
+    <p class="foot-links"><a href="https://www.linkedin.com/in/caleb-appleton-86563484/" target="_blank" rel="noopener">LinkedIn</a>, <a href="https://x.com/appleton_caleb" target="_blank" rel="noopener">X</a>, <a href="https://medium.com/bison-ventures" target="_blank" rel="noopener">Medium</a></p>
+  </div>
+</footer>
+
+</body>
+</html>
