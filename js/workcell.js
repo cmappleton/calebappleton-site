@@ -13,11 +13,21 @@ function hasWebGL() {
   catch (_) { return false; }
 }
 
+// Build the workcell (every model, the physics world and the frame loop) only once the stage is
+// on screen or close to it, so a page restored further down or a tab opened in the background
+// waits until the stage is in view. The WebGL check stays up front, where it overlaps the font
+// download; run later, it held up the first paint of the text.
 if (stage && M && hasWebGL()) {
   const fonts = document.fonts
     ? Promise.race([document.fonts.load('extra-condensed 900 100px Archivo').then(() => document.fonts.ready), new Promise(r => setTimeout(r, 2500))])
     : Promise.resolve();
-  fonts.then(start, start);
+  const near = new Promise(resolve => {
+    const io = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) { io.disconnect(); resolve(); }
+    }, { rootMargin: '50% 0px' });
+    io.observe(stage);
+  });
+  Promise.all([near, fonts.catch(() => {})]).then(start);
 }
 
 function start() {
