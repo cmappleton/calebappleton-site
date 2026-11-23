@@ -601,7 +601,6 @@ function start() {
     if (e.button !== 0 || e.target.closest('.stage-tools') || !howto.hidden) return;
     const [x, y] = local(e);
     ptr.down = true; ptr.sx = e.clientX; ptr.sy = e.clientY; ptr.moved = false; ptr.hadHold = !!hold; ptr.type = e.pointerType;
-    if (coach) coach.touched = true;
     setTarget(x, y);
     if (!hold) { wantGrip = true; pendingRelease = false; }
     if (e.pointerType === 'mouse') { e.preventDefault(); stage.focus({ preventScroll: true }); try { stage.setPointerCapture(e.pointerId); } catch (_) {} }
@@ -657,20 +656,19 @@ function start() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !howto.hidden) { e.preventDefault(); closeHowto(true); } });
   howtoBtn.setAttribute('aria-expanded', 'false');
 
-  // On a first visit, let people play before explaining. Show the card after a couple of
-  // seconds of steering without picking anything up, after a grab that misses, or on touch
-  // screens after a few seconds in view without a tap. Anyone who picks something up first
-  // has figured it out and never sees it.
+  // On a first visit with a mouse, let people play before explaining: show the card after a
+  // couple of seconds of steering without picking anything up, or after a grab that misses.
+  // Anyone who picks something up first has figured it out and never sees it. Touch screens
+  // have no hover to hint that the arm follows you, so there the card shows right away.
   const noHover = window.matchMedia('(hover: none)').matches;
-  let coach = { moving: 0, idle: 0, missed: false, touched: false };
+  let coach = { moving: 0, missed: false };
   try { if (localStorage.getItem(HOWTO_KEY) === '1') coach = null; } catch (_) {}
   function coachTick(dt) {
     if (!coach || !howto.hidden || now < arm.introUntil) return;
     if (hold) { coach = null; try { localStorage.setItem(HOWTO_KEY, '1'); } catch (_) {} return; }
     if (coach.missed) { if (missT <= 0) { coach = null; openHowto(false); } return; }
     if (now - lastInput < 0.5 && lastInput > arm.introUntil) coach.moving += dt;
-    else if (noHover && !coach.touched) coach.idle += dt;
-    if (coach.moving > 2 || coach.idle > 3) { coach = null; openHowto(false); }
+    if (coach.moving > 2) { coach = null; openHowto(false); }
   }
 
   /* ---------- tools: reset and tilt ---------- */
@@ -720,4 +718,5 @@ function start() {
   lastW = stage.clientWidth; lastH = stage.clientHeight;
   build();
   play();
+  if (coach && noHover) requestAnimationFrame(() => { coach = null; openHowto(false); });
 }
