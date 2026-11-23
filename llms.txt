@@ -53,11 +53,11 @@ Full list at https://calebappleton.com/writing/
 
 ### Articles
 
-- [Great products don't market themselves](https://www.fastcompany.com/91599924/great-products-dont-market-themselves): Fast Company, Sep 2026
-- [A founder's guide to hiring in the AI talent wars](https://www.fastcompany.com/91409962/a-founders-guide-to-hiring-in-the-ai-talent-wars): Fast Company, Sep 2025
-- [The case for revenue-focused platforms in the life sciences](https://news.crunchbase.com/health-wellness-biotech/revenue-focused-platforms-life-sciences-appleton-bison/): Crunchbase, Jan 2025
-- [Is this the beginning of the AI-in-drug-discovery era, or the end?](https://www.statnews.com/2024/12/03/ai-drug-discovery-investors-insilico-recursion/): STAT News, Dec 2024
-- [Our investment in Vivodyne and its vision to make fewer drugs fail](https://medium.com/bison-ventures/introducing-vivodyne-and-its-vision-to-alter-the-probability-of-success-in-drug-development-1533eba6b7df): Medium, Nov 2023
+- [Great products don't market themselves](https://www.fastcompany.com/91599924/great-products-dont-market-themselves): Fast Company, Q3 2026
+- [A founder's guide to hiring in the AI talent wars](https://www.fastcompany.com/91409962/a-founders-guide-to-hiring-in-the-ai-talent-wars): Fast Company, Q3 2025
+- [The case for revenue-focused platforms in the life sciences](https://news.crunchbase.com/health-wellness-biotech/revenue-focused-platforms-life-sciences-appleton-bison/): Crunchbase, Q1 2025
+- [Is this the beginning of the AI-in-drug-discovery era, or the end?](https://www.statnews.com/2024/12/03/ai-drug-discovery-investors-insilico-recursion/): STAT News, Q4 2024
+- [Our investment in Vivodyne and its vision to make fewer drugs fail](https://medium.com/bison-ventures/introducing-vivodyne-and-its-vision-to-alter-the-probability-of-success-in-drug-development-1533eba6b7df): Medium, Q4 2023
 
 ### Bison Ventures blog
 
@@ -69,15 +69,15 @@ Full list at https://calebappleton.com/writing/
 
 ### Podcasts
 
-- [Episode 152 with Bison Ventures and Caleb Appleton](https://therobotindustrypodcast.com/podcast/bison-ventures-and-caleb-appleton/): Robot Industry, Jan 2026
+- [Episode 152 with Bison Ventures and Caleb Appleton](https://therobotindustrypodcast.com/podcast/bison-ventures-and-caleb-appleton/): Robot Industry, Q1 2026
 - [A four-part conversation on serendipity, people, operating, and curiosity](https://www.thebiotechstartupspodcast.com/episodes/caleb-appleton-part-1): Biotech Startups, Q1 2026
 
 ### Press and profiles
 
-- [Venture interest slackens in once-hot biotech](https://www.wsj.com/articles/venture-interest-slackens-in-once-hot-biotech-5a68036e): Quoted in WSJ, Jul 2025
-- [Busting deep-tech myths with Caleb Appleton](https://infinitefrontiers.io/conversations/busting-deep-tech-myths-with-bison-ventures-caleb-appleton/): Infinite Frontiers, Jun 2025
-- [Sorting opportunity from hype in healthcare AI](https://www.wsj.com/articles/sorting-opportunity-from-hype-in-healthcare-ai-9800bef3): Quoted in WSJ, Jan 2025
-- [Featured investor profile](https://evca.org/content/caleb-appleton): EVCA, Oct 2024
+- [Venture interest slackens in once-hot biotech](https://www.wsj.com/articles/venture-interest-slackens-in-once-hot-biotech-5a68036e): Quoted in WSJ, Q3 2025
+- [Busting deep-tech myths with Caleb Appleton](https://infinitefrontiers.io/conversations/busting-deep-tech-myths-with-bison-ventures-caleb-appleton/): Infinite Frontiers, Q2 2025
+- [Sorting opportunity from hype in healthcare AI](https://www.wsj.com/articles/sorting-opportunity-from-hype-in-healthcare-ai-9800bef3): Quoted in WSJ, Q1 2025
+- [Featured investor profile](https://evca.org/content/caleb-appleton): EVCA, Q4 2024
 
 ## Contact
 
