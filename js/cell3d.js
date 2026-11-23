@@ -2,7 +2,7 @@
    rendered as ink outlines, crease lines and hatching on drafting film.
    Builders return groups with the origin at the bottom center, x to the
    right (objects face left), y up, z toward the viewer. One unit is about
-   the height of the cortado glass. */
+   the height of the espresso machine. */
 import * as THREE from 'three';
 import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
 import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
@@ -183,20 +183,115 @@ function font(g, weight, px, stretch) {
 /* ---------- objects ---------- */
 const lathe = (pts, seg = 96) => new THREE.LatheGeometry(pts.map(([x, y]) => V2(x, y)), seg);
 
-export function cortado(pen) {
-  const R0 = 0.385, R1 = 0.5, HH = 0.98, WALL = 0.035, BASE = 0.13;
-  const rOut = y => R0 + (R1 - R0) * (y / HH);
-  const rIn = y => rOut(y) - WALL;
-  const glassGeo = lathe([[0, 0], [R0 - 0.02, 0], [R0, 0.02], [rOut(HH), HH], [rOut(HH) - 0.008, HH + 0.012], [rIn(HH) + 0.006, HH + 0.012], [rIn(HH), HH], [rIn(BASE), BASE], [0, BASE]]);
-  const g = new THREE.Group();
-  const layer = (y0, y1) => lathe([[0, y0], [rIn(y0) - 0.004, y0], [rIn(y1) - 0.004, y1], [0, y1]]);
-  g.add(pen.solid(layer(BASE + 0.002, 0.6), 0.72, { edges: false }));
-  g.add(pen.solid(layer(0.6, 0.73), 0.3, { hull: false, threshold: 50 }));
-  g.add(pen.solid(layer(0.73, 0.745), 0.0, { hull: false, threshold: 50 }));
-  const glass = new THREE.Mesh(glassGeo, pen.glassMat);
-  glass.renderOrder = 2;
-  g.add(glass, pen.edges(glassGeo, 40));
-  return { group: g, anchor: V3(0.48, 0.82, 0), size: [1.0, 1.0] };
+/* A home espresso machine built from real parts, so the same model can sit
+   assembled on the workcell shelf and come apart on the About page. Each part
+   carries its assembled geometry, the direction it moves when exploded, and a
+   point for its balloon. Front faces +z; about 1.2 wide and 0.95 tall. */
+export function espressoParts(pen, { assembled = false } = {}) {
+  const rbox = (w, h, d, r) => new RoundedBoxGeometry(w, h, d, 2, r == null ? Math.min(w, h, d) * 0.15 : r);
+  const cyl = (r0, r1, h, seg = 32) => new THREE.CylinderGeometry(r0, r1, h, seg);
+  const put = (parent, obj, x, y, z) => { obj.position.set(x, y, z); parent.add(obj); return obj; };
+  const S = (geo, tone, o) => pen.solid(geo, tone, o);
+  const parts = [];
+  const part = (n, key, side, explode, anchor) => { const p = { n, key, side, explode, anchor, group: new THREE.Group() }; parts.push(p); return p.group; };
+
+  // 1 base: plinth, feet and drip tray
+  let g = part(1, 'base', 'right', V3(0, 0, 0), V3(0.5, 0.07, 0.2));
+  put(g, S(rbox(1.0, 0.065, 0.92, 0.02), 0.45), 0, 0.0675, 0.04);
+  [[-0.4, -0.34], [0.4, -0.34], [-0.4, 0.42], [0.4, 0.42]].forEach(([x, z]) => put(g, S(cyl(0.04, 0.045, 0.035, 20), 0.75, { threshold: 50 }), x, 0.0175, z));
+  put(g, S(rbox(0.62, 0.02, 0.24, 0.006), 0.2), 0, 0.11, 0.37);
+  for (let i = 0; i < 6; i++) put(g, S(new THREE.BoxGeometry(0.56, 0.012, 0.016), 0.6, { hull: false }), 0, 0.126, 0.27 + i * 0.04);
+
+  // 2 frame: welded square tube (hidden inside the housing when assembled)
+  if (!assembled) {
+    g = part(2, 'frame', 'right', V3(0, 0.45, 0), V3(0.42, 0.55, 0.22));
+    const T = 0.03, fx = 0.42, z0 = -0.37, z1 = 0.22, y0 = 0.115, y1 = 0.84;
+    [[-fx, z0], [fx, z0], [-fx, z1], [fx, z1]].forEach(([x, z]) => put(g, S(new THREE.BoxGeometry(T, y1 - y0, T), 0.35, { threshold: 30 }), x, (y0 + y1) / 2, z));
+    [y0, y1].forEach(y => {
+      [z0, z1].forEach(z => put(g, S(new THREE.BoxGeometry(2 * fx + T, T, T), 0.35, { threshold: 30 }), 0, y, z));
+      [-fx, fx].forEach(x => put(g, S(new THREE.BoxGeometry(T, T, z1 - z0), 0.35, { threshold: 30 }), x, y, (z0 + z1) / 2));
+    });
+
+    // 3 pump
+    g = part(3, 'pump', 'right', V3(0, 1.6, 0), V3(0.145, 0.22, -0.13));
+    put(g, S(cyl(0.07, 0.07, 0.24, 28).rotateZ(Math.PI / 2), 0.55, { threshold: 45 }), -0.1, 0.22, -0.2);
+    put(g, S(rbox(0.13, 0.15, 0.15, 0.02), 0.7), 0.08, 0.22, -0.2);
+    put(g, S(cyl(0.025, 0.025, 0.08, 16).rotateZ(Math.PI / 2), 0.3, { threshold: 50 }), -0.26, 0.22, -0.2);
+
+    // 4 boiler
+    g = part(4, 'boiler', 'right', V3(0, 1.75, 0), V3(0.3, 0.6, 0.02));
+    put(g, S(cyl(0.15, 0.15, 0.46, 40).rotateZ(Math.PI / 2), 0.25, { threshold: 40 }), 0, 0.56, -0.08);
+    [-1, 1].forEach(sx => put(g, S(new THREE.SphereGeometry(0.15, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2).scale(1, 0.45, 1).rotateZ(-sx * Math.PI / 2), 0.25, { threshold: 40 }), sx * 0.23, 0.56, -0.08));
+    put(g, S(new THREE.TorusGeometry(0.152, 0.012, 8, 40).rotateY(Math.PI / 2), 0.6, { hull: false }), 0.1, 0.56, -0.08);
+    put(g, S(cyl(0.022, 0.022, 0.14, 14), 0.4, { threshold: 50 }), -0.08, 0.76, -0.08);
+  }
+
+  // 5 steam wand and its knob
+  g = part(5, 'wand', 'right', V3(0.55, 2.9, 0.1), V3(0.58, 0.48, 0.2));
+  const wc = new THREE.CatmullRomCurve3([V3(0.46, 0.7, 0.12), V3(0.53, 0.7, 0.14), V3(0.565, 0.62, 0.17), V3(0.58, 0.32, 0.21)]);
+  put(g, S(new THREE.TubeGeometry(wc, 32, 0.017, 10), 0.2, { threshold: 80 }), 0, 0, 0);
+  put(g, S(new THREE.SphereGeometry(0.032, 16, 12), 0.5, { threshold: 80 }), 0.47, 0.7, 0.12);
+  put(g, S(cyl(0.02, 0.014, 0.05, 14), 0.6, { threshold: 60 }), 0.582, 0.29, 0.212);
+  put(g, S(cyl(0.05, 0.05, 0.05, 24).rotateZ(Math.PI / 2), 0.75, { threshold: 50 }), 0.485, 0.79, -0.02);
+
+  // 6 housing with the group head and a pressure gauge
+  g = part(6, 'housing', 'right', V3(0, 2.9, 0), V3(0.46, 0.36, 0.1));
+  put(g, S(rbox(0.92, 0.76, 0.67, 0.035), 0.04, { threshold: 30 }), 0, 0.48, -0.075);
+  put(g, S(rbox(0.26, 0.12, 0.13, 0.02), 0.2), 0, 0.62, 0.32);
+  put(g, S(cyl(0.105, 0.105, 0.07, 36), 0.35, { threshold: 40 }), 0, 0.525, 0.33);
+  const face = pen.decal(0.84, 0.2, (c, u, CW, CH) => {
+    const px = v => v * u;
+    c.strokeStyle = INK_CSS; c.fillStyle = INK_CSS; c.lineCap = 'round';
+    const gx = px(0.12), gy = CH / 2, gr = px(0.065);
+    c.lineWidth = px(0.008); c.beginPath(); c.arc(gx, gy, gr, 0, Math.PI * 2); c.stroke();
+    c.lineWidth = px(0.004);
+    for (let k = 0; k <= 8; k++) { const a = Math.PI * (0.8 + 1.4 * k / 8); c.beginPath(); c.moveTo(gx + Math.cos(a) * gr * 0.72, gy + Math.sin(a) * gr * 0.72); c.lineTo(gx + Math.cos(a) * gr * 0.88, gy + Math.sin(a) * gr * 0.88); c.stroke(); }
+    c.lineWidth = px(0.007); c.beginPath(); c.moveTo(gx, gy); c.lineTo(gx + Math.cos(-0.5) * gr * 0.7, gy + Math.sin(-0.5) * gr * 0.7); c.stroke();
+    c.beginPath(); c.arc(gx, gy, px(0.008), 0, Math.PI * 2); c.fill();
+    const sx = CW - px(0.16), sy = gy - px(0.03);
+    c.lineWidth = px(0.006); c.strokeRect(sx, sy, px(0.08), px(0.06));
+    c.fillRect(sx + px(0.015), sy + px(0.015), px(0.025), px(0.03));
+  });
+  put(g, face, 0, 0.74, 0.261);
+
+  // 7 cup tray on top
+  g = part(7, 'tray', 'right', V3(0, 3.3, 0), V3(0.41, 0.93, 0.2));
+  put(g, S(rbox(0.84, 0.025, 0.6, 0.008), 0.3), 0, 0.8725, -0.075);
+  const rx = 0.4, rz0 = -0.355, rz1 = 0.205, ry = 0.935;
+  [[-rx, rz0], [rx, rz0], [-rx, rz1], [rx, rz1]].forEach(([x, z]) => put(g, S(cyl(0.01, 0.01, 0.05, 10), 0.4, { threshold: 60 }), x, ry - 0.025, z));
+  [rz0, rz1].forEach(z => put(g, S(cyl(0.01, 0.01, 2 * rx, 10).rotateZ(Math.PI / 2), 0.4, { threshold: 60 }), 0, ry, z));
+  [-rx, rx].forEach(x => put(g, S(cyl(0.01, 0.01, rz1 - rz0, 10).rotateX(Math.PI / 2), 0.4, { threshold: 60 }), x, ry, (rz0 + rz1) / 2));
+
+  // 8 espresso cup on its saucer
+  g = part(8, 'cup', 'left', V3(0, 0.25, 0.75), V3(-0.07, 0.2, 0.36));
+  put(g, S(cyl(0.1, 0.085, 0.014, 32), 0.1, { threshold: 50 }), 0, 0.139, 0.36);
+  put(g, S(lathe([[0, 0], [0.042, 0], [0.05, 0.008], [0.068, 0.085], [0.07, 0.095], [0.06, 0.095], [0.058, 0.085], [0, 0.085]], 40), -0.2, { threshold: 50 }), 0, 0.146, 0.36);
+  put(g, S(cyl(0.057, 0.057, 0.004, 28), 0.8, { hull: false, edges: false }), 0, 0.226, 0.36);
+  put(g, S(new THREE.TorusGeometry(0.024, 0.007, 8, 20, Math.PI).rotateZ(-Math.PI / 2), -0.2, { threshold: 70 }), 0.066, 0.196, 0.36);
+
+  // 9 water tank on the left side
+  g = part(9, 'tank', 'left', V3(-0.55, 0.6, 0), V3(-0.59, 0.5, 0.17));
+  put(g, S(rbox(0.12, 0.64, 0.52, 0.02), -0.35), -0.53, 0.46, -0.09);
+  put(g, S(rbox(0.13, 0.03, 0.53, 0.01), 0.55), -0.53, 0.795, -0.09);
+
+  // 10 portafilter
+  g = part(10, 'portafilter', 'left', V3(0, 2.55, 0.5), V3(-0.03, 0.455, 0.72));
+  put(g, S(cyl(0.095, 0.085, 0.06, 36), 0.25, { threshold: 40 }), 0, 0.46, 0.33);
+  [-0.03, 0.03].forEach(x => put(g, S(cyl(0.012, 0.009, 0.035, 10), 0.5, { threshold: 60 }), x, 0.4125, 0.33));
+  put(g, S(cyl(0.022, 0.022, 0.08, 14).rotateX(Math.PI / 2), 0.3, { threshold: 60 }), 0, 0.46, 0.45);
+  put(g, S(cyl(0.034, 0.026, 0.3, 20).rotateX(Math.PI / 2), 0.78, { threshold: 60 }), 0, 0.455, 0.64);
+  put(g, S(new THREE.SphereGeometry(0.034, 16, 10), 0.78, { threshold: 80 }), 0, 0.455, 0.79);
+
+  return parts;
+}
+
+export function espresso(pen) {
+  const outer = new THREE.Group(), inner = new THREE.Group();
+  espressoParts(pen, { assembled: true }).forEach(p => inner.add(p.group));
+  inner.rotation.y = -0.32;
+  inner.scale.setScalar(1.1);
+  outer.add(inner);
+  return { group: outer, anchor: V3(0.46, 0.99, 0), size: [1.36, 1.04] };
 }
 
 function bisonShape() {

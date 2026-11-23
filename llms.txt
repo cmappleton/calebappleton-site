@@ -21,6 +21,16 @@ Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He f
 - **Stage:** Pre-seed and seed
 - **Sectors:** Physical AI · Robotics · TechBio · Computational Genetics · Applied AI software · Deep tech
 
+## Background
+
+- Grew up in College Station, Texas
+- Studied Biomedical Engineering at Georgia Tech and worked in one of the first CRISPR labs
+- Started his career at Bain & Company
+- Joined Innovation Endeavors during its spin-out from Eric Schmidt's family office, with early investments including Skylo Technologies, Eikon Therapeutics, Vicarious Surgical, Dewpoint Therapeutics and BigHat Biosciences
+- Started a company during the pandemic
+- Led the global subscription business at TuneIn through a turnaround
+- Now a Partner at Bison Ventures
+
 ## Portfolio
 
 Companies Caleb works with at Bison Ventures (full list at https://calebappleton.com/companies/):
@@ -39,18 +49,35 @@ Earlier investments at Innovation Endeavors include Skylo Technologies, Eikon Th
 
 ## Writing
 
-Selected articles:
+Full list at https://calebappleton.com/writing/
 
-- [Great products don't market themselves](https://www.fastcompany.com/91599924/great-products-dont-market-themselves) — Fast Company, Sep 2026
-- [A founder's guide to hiring in the AI talent wars](https://www.fastcompany.com/91409962/a-founders-guide-to-hiring-in-the-ai-talent-wars) — Fast Company, Sep 2025
+### Articles
 
-Caleb also writes about deep tech investing on the Bison Ventures blog, hosted on LinkedIn:
+- [Great products don't market themselves](https://www.fastcompany.com/91599924/great-products-dont-market-themselves): Fast Company, Sep 2026
+- [A founder's guide to hiring in the AI talent wars](https://www.fastcompany.com/91409962/a-founders-guide-to-hiring-in-the-ai-talent-wars): Fast Company, Sep 2025
+- [The case for revenue-focused platforms in the life sciences](https://news.crunchbase.com/health-wellness-biotech/revenue-focused-platforms-life-sciences-appleton-bison/): Crunchbase, Jan 2025
+- [Is this the beginning of the AI-in-drug-discovery era, or the end?](https://www.statnews.com/2024/12/03/ai-drug-discovery-investors-insilico-recursion/): STAT News, Dec 2024
+- [Our investment in Vivodyne and its vision to make fewer drugs fail](https://medium.com/bison-ventures/introducing-vivodyne-and-its-vision-to-alter-the-probability-of-success-in-drug-development-1533eba6b7df): Medium, Nov 2023
 
-- [Deep tech is the new SaaS](https://www.linkedin.com/pulse/deep-tech-new-saas-bisonvc-4lypc/)
-- [Why now: what's different about the robotics landscape today (Pt 1)](https://www.linkedin.com/pulse/why-now-whats-different-robotics-landscape-today-bisonvc-kne9e/)
-- [The evolution of robotics investing (Pt 2)](https://www.linkedin.com/pulse/part-2-the-evolution-of-robotics-investing-bisonvc/)
-- [Just because it's possible to use a robot, doesn't mean you should (Pt 3)](https://www.linkedin.com/pulse/part-3-just-because-possible-use-robot-doesnt-mean-you-should-v11gc/)
-- [So I want to start a robotics company in 2024… (Pt 4)](https://www.linkedin.com/pulse/part-4-so-i-want-start-robotics-company-2024-bisonvc-h1ybc/)
+### Bison Ventures blog
+
+- [Deep tech is the new SaaS](https://www.linkedin.com/pulse/deep-tech-new-saas-bisonvc-4lypc/): LinkedIn, Q1 2026
+- [The future of robotics is more promising than my perpetually-stuck Roomba](https://www.linkedin.com/pulse/future-robotics-more-promising-than-my-perpetually-stuck-roomba-ktatc/): Robotics part 1, Q4 2024
+- [Why now: what's different about the robotics landscape today](https://www.linkedin.com/pulse/why-now-whats-different-robotics-landscape-today-bisonvc-kne9e/): Robotics part 2, Q4 2024
+- [Just because it's possible to use a robot, doesn't mean you should](https://www.linkedin.com/pulse/part-3-just-because-possible-use-robot-doesnt-mean-you-should-v11gc/): Robotics part 3, Q4 2024
+- [So I want to start a robotics company in 2024…](https://www.linkedin.com/pulse/part-4-so-i-want-start-robotics-company-2024-bisonvc-h1ybc/): Robotics part 4, Q4 2024
+
+### Podcasts
+
+- [Episode 152 with Bison Ventures and Caleb Appleton](https://therobotindustrypodcast.com/podcast/bison-ventures-and-caleb-appleton/): Robot Industry, Jan 2026
+- [A four-part conversation on serendipity, people, operating, and curiosity](https://www.thebiotechstartupspodcast.com/episodes/caleb-appleton-part-1): Biotech Startups, Q1 2026
+
+### Press and profiles
+
+- [Venture interest slackens in once-hot biotech](https://www.wsj.com/articles/venture-interest-slackens-in-once-hot-biotech-5a68036e): Quoted in WSJ, Jul 2025
+- [Busting deep-tech myths with Caleb Appleton](https://infinitefrontiers.io/conversations/busting-deep-tech-myths-with-bison-ventures-caleb-appleton/): Infinite Frontiers, Jun 2025
+- [Sorting opportunity from hype in healthcare AI](https://www.wsj.com/articles/sorting-opportunity-from-hype-in-healthcare-ai-9800bef3): Quoted in WSJ, Jan 2025
+- [Featured investor profile](https://evca.org/content/caleb-appleton): EVCA, Oct 2024
 
 ## Contact
 

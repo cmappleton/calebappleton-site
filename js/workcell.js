@@ -33,11 +33,11 @@ function start() {
   const PU = 100;                         // physics units per world unit
   const CAT_GRIP = 0x0002, CAT_SHELF = 0x0004, ALL = 0xFFFFFFFF;
   const SECTIONS = {
-    cortado: ['/about/', 'About'], bison: ['/companies/', 'Companies'], book: ['/writing/', 'Writing'],
+    espresso: ['/about/', 'About'], bison: ['/companies/', 'Companies'], book: ['/writing/', 'Writing'],
     helmet: ['/adventures/', 'Adventures'], walker: ['/robot-training/', 'Robot training'], envelope: ['/contact/', 'Contact']
   };
   const HULL = {
-    cortado: [[-0.385, 0], [0.385, 0], [0.5, 0.99], [-0.5, 0.99]],
+    espresso: [[-0.68, 0], [0.68, 0], [0.68, 1.04], [-0.68, 1.04]],
     bison: [[-0.53, 0], [0.68, 0], [0.87, 0.33], [0.77, 0.65], [-0.25, 1.06], [-0.72, 0.9], [-0.89, 0.36]],
     book: [[-1.15, 0], [1.15, 0], [1.15, 0.5], [-1.15, 0.5]],
     helmet: [[-0.8, 0], [0.86, 0], [0.88, 0.16], [0.6, 0.47], [0.15, 0.63], [-0.35, 0.58], [-0.68, 0.38], [-0.8, 0.16]],
@@ -132,7 +132,7 @@ function start() {
     const lettersTop = wide ? capU * 2 : lay.letterBase + capU * 2;
 
     // shelves and what sits on them
-    const shelf1Kinds = ['cortado', 'bison', 'book'], shelf2Kinds = ['helmet', 'walker', 'envelope'];
+    const shelf1Kinds = ['espresso', 'bison', 'book'], shelf2Kinds = ['helmet', 'walker', 'envelope'];
     const widthOf = k => { const h = HULL[k]; return Math.max(...h.map(p => p[0])) - Math.min(...h.map(p => p[0])); };
     if (wide) {
       const x0 = lay.m, x1 = Math.max(lay.Wu * 0.42, x0 + 8.6);
@@ -236,7 +236,7 @@ function start() {
 
     // section objects
     const builders = {
-      cortado: () => C.cortado(pen), bison: () => C.bison(pen), book: () => C.book(pen, 'Writing', 1.0),
+      espresso: () => C.espresso(pen), bison: () => C.bison(pen), book: () => C.book(pen, 'Writing', 1.0),
       helmet: () => C.helmet(pen, { frontStraps: true }), walker: () => C.walker(pen), envelope: () => C.envelope(pen, 'Contact')
     };
     L.objects.forEach(o => {
@@ -499,7 +499,8 @@ function start() {
       const wx = cx + ox * Math.cos(a) - oy * Math.sin(a), wy = cy + ox * Math.sin(a) + oy * Math.cos(a);
       const [X, Y] = toScreen(wx, wy, c.it.anchor.z || 0);
       const dir = X > W - 130 ? -1 : 1;
-      const tx = X + dir * 24, ty = Y - 20;
+      const lift = c.it.kind === 'walker' && L.wide ? 42 : 20;   // clear the envelope beside it
+      const tx = X + dir * 24, ty = Y - lift;
       c.dot.setAttribute('cx', X.toFixed(1)); c.dot.setAttribute('cy', Y.toFixed(1));
       c.line.setAttribute('d', `M ${X.toFixed(1)} ${Y.toFixed(1)} L ${tx.toFixed(1)} ${ty.toFixed(1)} h ${dir * 8}`);
       c.text.setAttribute('x', (tx + dir * 12).toFixed(1)); c.text.setAttribute('y', (ty + 6).toFixed(1));
