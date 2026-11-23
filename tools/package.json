@@ -1,0 +1,13 @@
+{
+  "name": "calebappleton-site-tools",
+  "private": true,
+  "description": "One-off build of js/vendor/three.min.js. The site itself has no build step.",
+  "type": "module",
+  "scripts": {
+    "build:three": "node build-three.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "three": "0.160.0"
+  }
+}
