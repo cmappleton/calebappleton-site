@@ -6,6 +6,9 @@ import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import * as C from './cell3d.js';
 
+// Vercel Web Analytics. The stub in the page's <head> queues events until its script loads.
+const track = (name, data) => { try { if (window.va) window.va('event', { name, data }); } catch (_) {} };
+
 const view = document.getElementById('rig-canvas');
 if (view) init();
 
@@ -304,8 +307,9 @@ async function init() {
   const toScreen = (x, y, z = 0) => [(x - (camX - viewW / 2)) / viewW * W, H - 34 - (y * CT - z * ST) * (W / viewW)];
 
   const replay = {
-    sim: null, g: null, f: 0, hold: 0, playing: !reduce, fresh: false,
+    sim: null, g: null, f: 0, hold: 0, playing: !reduce, fresh: false, reported: false,
     start(force) {
+      this.reported = false;
       const best = st.elites[0];
       this.g = best ? best.g : randomGenome();
       const newBest = best && best.f !== this.f;
@@ -385,6 +389,16 @@ async function init() {
     drawOverlay(s);
   }
 
+  // Send how a replay ended: the first one on this visit, then only when the result changes,
+  // so leaving the page open sends a couple of events instead of one every run.
+  let lastResult = null;
+  function reportRun(fell) {
+    const result = fell ? 'Fell' : 'Finished';
+    if (result === lastResult) return;
+    lastResult = result;
+    track('Robot training replay', { result });
+  }
+
   let inView = false, raf = 0;
   function loop() {
     raf = 0;
@@ -392,7 +406,10 @@ async function init() {
     const s = replay.sim;
     if (replay.playing) {
       if (s.n < STEPS && !fallen(s)) { for (let k = 0; k < 2 && s.n < STEPS && !fallen(s); k++) step(s, replay.g); }
-      else if ((replay.hold += 1 / 60) > 2.6) { replay.start(); if (reduce) replay.playing = false; }
+      else {
+        if (!replay.reported) { replay.reported = true; reportRun(fallen(s)); }
+        if ((replay.hold += 1 / 60) > 2.6) { replay.start(); if (reduce) replay.playing = false; }
+      }
     }
     render();
     if (replay.playing || !reduce) raf = requestAnimationFrame(loop);

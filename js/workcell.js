@@ -7,6 +7,8 @@ import * as C from './cell3d.js';
 
 const stage = document.getElementById('stage');
 const M = window.Matter;
+// Vercel Web Analytics. The stub in the page's <head> queues events until its script loads.
+const track = (name, data) => { try { if (window.va) window.va('event', { name, data }); } catch (_) {} };
 
 function hasWebGL() {
   try { const c = document.createElement('canvas'); return !!(c.getContext('webgl2') || c.getContext('webgl')); }
@@ -454,6 +456,7 @@ function start() {
   function ship(it) {
     resetBody(it);
     shipped = true;
+    track('Arm opened page', { page: it.label });
     message = { text: `Opening ${it.label}`, until: now + 3 };
     setTimeout(() => { location.href = it.href; }, reduce ? 50 : 450);
   }
@@ -635,26 +638,28 @@ function start() {
   /* ---------- how it works: shown once on a first visit, then from its button ---------- */
   const HOWTO_KEY = 'calebappleton.howto.v1';
   const howtoBtn = tools.querySelector('[data-act="howto"]');
-  function openHowto(focus) {
+  function openHowto(focus, why) {
     howto.hidden = false;
     howtoBtn.setAttribute('aria-expanded', 'true');
     ptr.inside = false; ptr.down = false;
     if (focus) howto.querySelector('[data-howto="close"]').focus({ preventScroll: true });
+    track('How-to card opened', { why });
   }
-  function closeHowto(refocus) {
+  function closeHowto(refocus, how) {
     if (howto.hidden) return;
     howto.hidden = true;
     howtoBtn.setAttribute('aria-expanded', 'false');
     try { localStorage.setItem(HOWTO_KEY, '1'); } catch (_) {}
     if (refocus) stage.focus({ preventScroll: true });
+    track('How-to card closed', { how });
   }
-  howtoBtn.addEventListener('click', () => (howto.hidden ? openHowto(true) : closeHowto(true)));
+  howtoBtn.addEventListener('click', () => (howto.hidden ? openHowto(true, 'How it works button') : closeHowto(true, 'How it works button')));
   howto.addEventListener('click', e => {
     const act = e.target.closest('[data-howto]');
-    if (act) closeHowto(act.dataset.howto === 'close');
-    else if (!e.target.closest('.howto-card')) closeHowto(true);
+    if (act) closeHowto(act.dataset.howto === 'close', act.dataset.howto === 'close' ? 'Try it' : 'Skip to the list of pages');
+    else if (!e.target.closest('.howto-card')) closeHowto(true, 'Clicked outside the card');
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !howto.hidden) { e.preventDefault(); closeHowto(true); } });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !howto.hidden) { e.preventDefault(); closeHowto(true, 'Escape'); } });
   howtoBtn.setAttribute('aria-expanded', 'false');
 
   // On a first visit with a mouse, let people play before explaining: show the card after a
@@ -667,9 +672,9 @@ function start() {
   function coachTick(dt) {
     if (!coach || !howto.hidden || now < arm.introUntil) return;
     if (hold) { coach = null; try { localStorage.setItem(HOWTO_KEY, '1'); } catch (_) {} return; }
-    if (coach.missed) { if (missT <= 0) { coach = null; openHowto(false); } return; }
+    if (coach.missed) { if (missT <= 0) { coach = null; openHowto(false, 'Missed a grab'); } return; }
     if (now - lastInput < 0.5 && lastInput > arm.introUntil) coach.moving += dt;
-    if (coach.moving > 2) { coach = null; openHowto(false); }
+    if (coach.moving > 2) { coach = null; openHowto(false, 'Steered without grabbing'); }
   }
 
   /* ---------- tools: reset and tilt ---------- */
@@ -719,5 +724,5 @@ function start() {
   lastW = stage.clientWidth; lastH = stage.clientHeight;
   build();
   play();
-  if (coach && noHover) requestAnimationFrame(() => { coach = null; openHowto(false); });
+  if (coach && noHover) requestAnimationFrame(() => { coach = null; openHowto(false, 'First visit on a touch screen'); });
 }
