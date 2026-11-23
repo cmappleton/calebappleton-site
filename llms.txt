@@ -1,8 +1,8 @@
 # Caleb Appleton
 
-> Partner at Bison Ventures investing in Physical AI, TechBio, and applied AI software. Based in San Francisco.
+> Partner at Bison Ventures investing in physical AI and human health. Based in San Francisco.
 
-Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He focuses on early-stage (primarily seed) investments in three areas: physical AI and robotics, technology-enabled biology (TechBio), and applied AI software. He is based in the Presidio in San Francisco, California.
+Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He invests from pre-seed to Series B, with checks from $1M to $15M, and focuses on physical AI and human health. He is based in the Presidio in San Francisco, California.
 
 ## Pages
 
@@ -18,17 +18,17 @@ Caleb Appleton is a venture capital investor and Partner at Bison Ventures. He f
 
 - **Title:** Partner
 - **Firm:** Bison Ventures (https://bison.vc/)
-- **Stage:** Pre-seed and seed
-- **Sectors:** Physical AI · Robotics · TechBio · Computational Genetics · Applied AI software · Deep tech
+- **Stage:** Pre-seed to Series B, with checks from $1M to $15M
+- **Focus:** Physical AI and human health, including robotics, AI for engineering, surgical autonomy, TechBio and computational genetics
 
 ## Background
 
 - Grew up in College Station, Texas
-- Studied Biomedical Engineering at Georgia Tech and worked in one of the first CRISPR labs
+- Studied Biomedical Engineering at Georgia Tech and worked in one of the first CRISPR labs. He now sits on the department's External Advisory Board
 - Started his career at Bain & Company
 - Joined Innovation Endeavors during its spin-out from Eric Schmidt's family office, with early investments including Skylo Technologies, Eikon Therapeutics, Vicarious Surgical, Dewpoint Therapeutics and BigHat Biosciences
 - Started a company during the pandemic
-- Led the global subscription business at TuneIn through a turnaround
+- As SVP, led the global subscription business at TuneIn through a turnaround
 - Now a Partner at Bison Ventures
 
 ## Portfolio
@@ -39,11 +39,11 @@ Companies Caleb works with at Bison Ventures (full list at https://calebappleton
 - [Cobot](https://www.co.bot/): general purpose robotics and physical AI (Series B)
 - [Vivodyne](https://vivodyne.com/): human tissue data at scale, pre-clinically (Series A)
 - Stealth TechBio: next-generation radiopharmaceutical platform (Seed)
-- [Cosmon](https://cosmon.com/): the AI toolchain for physical world engineering (Seed)
-- [Grid Aero](https://grid.aero/): autonomous air logistics platform (Series A)
-- [Inner Logic](https://innerlogic.io/): physical AI for healthcare (Seed)
+- [Cosmon](https://cosmon.com/): an engineering agent for CAD, simulation and PLM work (Seed)
+- [Grid Aero](https://grid.aero/): autonomous long-range aircraft (Series A)
+- [Inner Logic](https://innerlogic.io/): physical AI for the operating room (Seed)
 - [Sleuth](https://sleuthinsights.com/): answering complex, strategic biopharma questions using AI (Seed)
-- [Passkey](https://www.passkeytx.com/): tackling complex diseases using computational genetics (Seed)
+- [Passkey](https://www.passkeytx.com/): computational genetics to design multifunctional drugs (Seed)
 
 Earlier investments at Innovation Endeavors include Skylo Technologies, Eikon Therapeutics (IPO), Vicarious Surgical (IPO), Dewpoint Therapeutics and BigHat Biosciences.
 
@@ -89,4 +89,4 @@ Full list at https://calebappleton.com/writing/
 
 ## Outreach
 
-Cold emails are welcome — particularly from founders building in physical AI, robotics, applied AI software, and TechBio.
+Cold emails are welcome, particularly from founders building in physical AI, robotics and human health.
