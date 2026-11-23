@@ -296,8 +296,11 @@ async function init() {
     const narrow = W < 560, sc = Math.max(0, score(dist, fell)).toFixed(2);
     const stack = [[done ? (fell ? `Fell at ${s.t.toFixed(1)} s` : `Finished at ${TRIAL} s`) : `t = ${s.t.toFixed(1)} s of ${TRIAL}`, done ? redInk : '#555D8B', 12, 600]];
     if (done && narrow) { stack.push([`Score ${sc} m`, redInk, 15, 800]); if (fell) stack.push(['Falling cuts the score', '#555D8B', 12, 600]); }
-    if (replay.tried) stack.push([`Best of ${replay.tried.toLocaleString()} gaits tried`, '#555D8B', 12, 600]);
+    // this run is the best gait as of when it started; training keeps going while it plays
+    if (replay.tried) stack.push([`Best after ${replay.tried.toLocaleString()} gaits tried`, '#555D8B', 12, 600]);
     if (replay.fresh) stack.push(['New best', redInk, 12, 600]);
+    const waiting = st.elites.length ? Math.max(0, st.elites[0].f).toFixed(2) : null;
+    if (waiting && st.elites[0].f > replay.f && waiting !== Math.max(0, replay.f).toFixed(2)) stack.push([`Better gait found: ${waiting} m. It plays next.`, '#555D8B', 12, 600]);
     let ly = topY + 4;
     stack.forEach(([txt, fill, size, wt], i) => {
       if (i) ly += size + 4;
