@@ -33,7 +33,10 @@ function start() {
 
   const TILT = 0.22, CT = Math.cos(TILT), ST = Math.sin(TILT);
   const PU = 100;                         // physics units per world unit
-  const CAT_GRIP = 0x0002, CAT_SHELF = 0x0004, ALL = 0xFFFFFFFF;
+  const CAT_GRIP = 0x0002, CAT_SHELF = 0x0004, CAT_ITEM = 0x0008, ALL = 0xFFFFFFFF;
+  // A carried object passes through shelves and other objects. Once let go it lands on
+  // shelves and the belt, but stays a ghost to other objects until it is clear of them.
+  const CARRY_MASK = ALL & ~CAT_GRIP & ~CAT_SHELF & ~CAT_ITEM, LANDING_MASK = ALL & ~CAT_GRIP & ~CAT_ITEM;
   const SECTIONS = {
     espresso: ['/about/', 'About'], bison: ['/companies/', 'Companies'], book: ['/writing/', 'Writing'],
     helmet: ['/adventures/', 'Adventures'], walker: ['/robot-training/', 'Robot training'], envelope: ['/contact/', 'Contact']
@@ -177,6 +180,7 @@ function start() {
     A.L1 = R * 0.53; A.L2 = R * 0.47;
     lay.A = A; lay.gl = gl; lay.shoulder = sh;
     lay.home = wide ? { x: lay.baseX + 1.9, y: lay.conv.y + 2.4 } : { x: lay.baseX + 1.5, y: lay.conv.y + 2.2 };
+    lay.carryY = Math.min(lay.Hu - 0.7, sh.y + (A.L1 + A.L2) * 0.82 - gl);   // tip height for crossing the base
     return lay;
   }
 
@@ -306,6 +310,7 @@ function start() {
   }
 
   function addDynamic(it) {
+    itemBodies(it).forEach(b => setCategory(b, CAT_ITEM));
     Composite.add(engine.world, it.body);
     dyn.push(it.body);
     byBody.set(it.body, it);
@@ -325,11 +330,34 @@ function start() {
     arm.target.y = Math.max(0.04, Math.min(L.Hu + 1, y));
   }
 
+  /* Carrying across the arm's base on a wide layout: lift, cross high, then lower.
+     Otherwise the elbow flips mid-move and the gripper sweeps through the shelves. */
+  let route = null;
+  function carryGoal() {
+    const t = arm.target;
+    if (!hold || !L.wide) { route = null; return t; }
+    const sx = L.shoulder.x, tip = arm.tip, H = L.carryY;
+    const side = x => (x < sx ? -1 : 1);
+    const crossing = side(tip.x) !== side(t.x);
+    if (!route) {
+      if (!crossing) return t;
+      route = { phase: tip.y >= H - 0.25 ? 'cross' : 'lift', x: tip.x, n: 0 };
+    }
+    if (route.phase === 'lift') {
+      if (!crossing) { route = null; return t; }
+      if (tip.y >= H - 0.25 || (route.n++ > 6 && arm.err < 0.02)) route.phase = 'cross';
+      else return { x: route.x, y: H };
+    }
+    if (side(tip.x) === side(t.x) && Math.abs(tip.x - t.x) < 0.9) { route = null; return t; }
+    return { x: t.x, y: Math.max(t.y, H) };
+  }
+
   function servo(dt) {
-    const sol = robot.ik(arm.target.x - L.baseX, arm.target.y, arm.sol || { q1: arm.q1, q2: arm.q2 });
+    const goal = carryGoal();
+    const sol = robot.ik(goal.x - L.baseX, goal.y, arm.sol || { q1: arm.q1, q2: arm.q2 });
     arm.sol = sol;
     const ang = (a, b) => Math.atan2(Math.sin(a - b), Math.cos(a - b));
-    const wmax = L.wide ? 2.8 : 2.4;
+    const wmax = (L.wide ? 2.8 : 2.4) * (route ? 1.3 : 1);
     const t1 = arm.q1 + ang(sol.q1, arm.q1), t2 = arm.q2 + ang(sol.q2, arm.q2);
     const step = (q, t) => q + Math.max(-wmax * dt, Math.min(wmax * dt, (t - q) * 9 * dt));
     arm.err = Math.abs(t1 - arm.q1) + Math.abs(t2 - arm.q2);
@@ -337,7 +365,7 @@ function start() {
     fk();
   }
 
-  const arrived = () => arm.err < 0.02;
+  const arrived = () => arm.err < 0.02 && !route;
 
   function placeGripper() {
     const A = L.A, t = arm.tip;
@@ -346,7 +374,7 @@ function start() {
     const speed = Math.hypot(t.x - prev.x, t.y - prev.y) * PU;      // physics units per step
     arm.prevTip = { ...t };
     const userDriven = now - lastInput < 0.4 && now > arm.introUntil;
-    const collide = !wantGrip && speed > 6 && userDriven;
+    const collide = !hold && !wantGrip && speed > 6 && userDriven;   // an empty gripper can still knock things over
     grip.all.forEach(b => { b.collisionFilter.mask = collide ? (ALL & ~CAT_SHELF) : 0; });
     Body.setPosition(grip.palm, P(t.x, t.y + A.fingerLen + A.palmH / 2), true);
     Body.setPosition(grip.fl, P(t.x - open / 2 - A.fingerW / 2, t.y + A.fingerLen / 2), true);
@@ -363,6 +391,21 @@ function start() {
   function setMask(body, mask) {
     body.collisionFilter = { ...body.collisionFilter, mask };
     body.parts.forEach(p => { p.collisionFilter = body.collisionFilter; });
+  }
+  function setCategory(body, category) {
+    body.collisionFilter = { ...body.collisionFilter, category };
+    body.parts.forEach(p => { p.collisionFilter = body.collisionFilter; });
+  }
+  function itemBodies(it) { return it.wheels ? [it.body, ...it.wheels] : [it.body]; }
+  function setItemMask(it, mask) { itemBodies(it).forEach(b => setMask(b, mask)); }
+  const ghosts = new Set();
+  function overlapsOthers(it) {
+    const mine = itemBodies(it), others = dyn.filter(b => !mine.includes(b));
+    return mine.some(b => Query.collides(b, others).length > 0);
+  }
+  function settle(it) {
+    if (overlapsOthers(it)) { setItemMask(it, LANDING_MASK); ghosts.add(it); }
+    else { setItemMask(it, DEFAULT_MASK); ghosts.delete(it); }
   }
 
   function tryGrab() {
@@ -386,7 +429,7 @@ function start() {
     if (!it) return false;
     const c = Constraint.create({ pointA: { ...at }, bodyB: body, pointB: { x: at.x - body.position.x, y: at.y - body.position.y }, stiffness: 0.55, damping: 0.12, length: 0 });
     Composite.add(engine.world, c);
-    setMask(body, DEFAULT_MASK & ~CAT_GRIP & ~CAT_SHELF);
+    setItemMask(it, CARRY_MASK); ghosts.delete(it);
     body.frictionAir = 0.05;
     Sleeping.set(body, false);
     hold = { it, body, c, dy: (at.y / -PU) - t.y };
@@ -399,7 +442,7 @@ function start() {
   function release() {
     if (!hold) return;
     Composite.remove(engine.world, hold.c);
-    setMask(hold.body, DEFAULT_MASK);
+    settle(hold.it);
     hold.body.frictionAir = 0.01;
     if (hold.it.el) hold.it.el.classList.remove('is-held');
     hold.it.lastHeld = now;
@@ -422,6 +465,7 @@ function start() {
   }
 
   function resetBody(it) {
+    ghosts.delete(it); setItemMask(it, DEFAULT_MASK);
     const b = it.body;
     Body.setPosition(b, it.home); Body.setAngle(b, 0);
     Body.setVelocity(b, { x: 0, y: 0 }); Body.setAngularVelocity(b, 0);
@@ -575,6 +619,7 @@ function start() {
     if (pendingRelease && arrived()) release();
     coachTick(dt);
     Engine.update(engine, STEP);
+    if (ghosts.size) ghosts.forEach(it => { if (!overlapsOthers(it)) { setItemMask(it, DEFAULT_MASK); ghosts.delete(it); } });
     driveBelt();
     checkBounds();
     conveyorG.userData.advance(BELT_V / PU);
