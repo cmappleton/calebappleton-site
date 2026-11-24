@@ -289,6 +289,9 @@ input[type="range"]:focus-visible{outline:3px solid var(--red);outline-offset:2p
 .rig{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(280px,1fr);gap:clamp(24px,3.5vw,52px);align-items:start}
 .rig-view{border:1px solid var(--ink)}
 .rig-view canvas{display:block;width:100%;height:clamp(280px,30vw,440px)}
+.rig-stage{position:relative}
+.rig-mode{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid var(--ink)}
+.rig-mode-k{font-stretch:75%;font-weight:600;font-size:13px;color:var(--ink-2);margin-right:4px}
 .rig-side p{font-size:17px;line-height:1.55;max-width:32em}
 .rig-readout{display:grid;grid-template-columns:1fr 1fr;margin:22px 0 18px;border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
 .rig-readout div{padding:8px 12px;border-right:1px solid var(--ink);border-bottom:1px solid var(--ink)}

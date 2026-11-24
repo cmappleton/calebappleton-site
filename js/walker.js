@@ -65,6 +65,7 @@ async function init() {
   let queue = st.elites.length ? children(st) : Array.from({ length: POP }, randomGenome);
   let evaluated = [];
   let paused = false, genStart = performance.now();
+  let latest = null;   // the most recently scored attempt, for the replay
 
   /* training runs in short time slices while the page is visible */
   let lastTick = performance.now();
@@ -76,7 +77,9 @@ async function init() {
       const budget = t + 6;
       while (queue.length && performance.now() < budget) {
         const g = queue.pop();
-        evaluated.push({ g, f: evaluate(g) });
+        const f = evaluate(g);
+        evaluated.push({ g, f });
+        latest = { g, f };
         st.tried++;
       }
       if (!queue.length && performance.now() - genStart > 1100) {
@@ -100,7 +103,7 @@ async function init() {
   /* the shared robot: when shared gaits beat the one on screen, replay the new best */
   const share = connectShare(() => st, {
     onShared(added) {
-      if (added && st.elites.length && st.elites[0].f > replay.f) { replay.start(); if (!replay.playing) render(); }
+      if (mode === 'best' && added && st.elites.length && st.elites[0].f > replay.f) { replay.start(); if (!replay.playing) render(); }
       readouts();
     }
   });
@@ -181,8 +184,29 @@ async function init() {
   const renderer = new THREE.WebGLRenderer({ antialias: true, canvas: view, alpha: true });
   renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
   renderer.setClearColor(0x000000, 0);
-  const host = view.parentNode;
-  host.style.position = 'relative';
+  /* which run to show: the latest attempt (default) or the best gait so far */
+  const MODE_KEY = 'calebappleton.rig.mode';
+  let mode = 'latest';
+  try { if (localStorage.getItem(MODE_KEY) === 'best') mode = 'best'; } catch (_) {}
+  const frame = view.parentNode;
+  const host = document.createElement('div');
+  host.className = 'rig-stage';
+  frame.insertBefore(host, view);
+  host.appendChild(view);
+  const bar = document.createElement('div');
+  bar.className = 'rig-mode';
+  bar.setAttribute('role', 'group');
+  bar.setAttribute('aria-label', 'Which run to show');
+  bar.innerHTML = '<span class="rig-mode-k">Show</span><button type="button" class="tool" data-mode="latest">Latest attempt</button><button type="button" class="tool" data-mode="best">Best so far</button>';
+  frame.insertBefore(bar, host);
+  function setMode(m, restart) {
+    mode = m;
+    bar.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+    view.setAttribute('aria-label', m === 'best' ? 'A four-legged walker replaying its best gait so far' : 'A four-legged walker replaying its latest attempt');
+    try { localStorage.setItem(MODE_KEY, m); } catch (_) {}
+    if (restart) { replay.start(true); render(); kick(); }
+  }
+  bar.addEventListener('click', e => { const b = e.target.closest('[data-mode]'); if (b && b.dataset.mode !== mode) setMode(b.dataset.mode, true); });
   const overlay = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   overlay.setAttribute('aria-hidden', 'true');
   overlay.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
@@ -249,14 +273,19 @@ async function init() {
   const toScreen = (x, y, z = 0) => [(x - (camX - viewW / 2)) / viewW * W, H - 34 - (y * CT - z * ST) * (W / viewW)];
 
   const replay = {
-    sim: null, g: null, f: 0, hold: 0, playing: !reduce, fresh: false, reported: false,
+    sim: null, g: null, f: 0, hold: 0, playing: !reduce, fresh: false, reported: false, kind: 'best', bestF: null, shownBest: null,
     start(force) {
       this.reported = false;
       const best = st.elites[0];
-      this.g = best ? best.g : randomGenome();
-      const newBest = best && best.f !== this.f;
-      this.fresh = newBest && this.f !== 0;
-      this.f = best ? best.f : 0;
+      this.bestF = best ? best.f : null;
+      this.kind = mode === 'latest' && latest ? 'latest' : 'best';
+      if (this.kind === 'latest') { this.g = latest.g; this.f = latest.f; this.fresh = false; }
+      else {
+        this.g = best ? best.g : randomGenome();
+        this.f = best ? best.f : 0;
+        this.fresh = !!best && this.shownBest !== null && best.f !== this.shownBest;
+        if (best) this.shownBest = best.f;
+      }
       this.sim = makeSim(this.g);
       this.x0 = (this.sim.x[0] + this.sim.x[1]) / 2;
       this.tried = share.totals().tried;
@@ -283,6 +312,15 @@ async function init() {
     const [mx] = toScreen(mid, 0);
     const fell = fallen(s), done = fell || s.n >= STEPS;
     const red = '#F0441C', redInk = '#BF2F0E', dimInk = done ? red : '#1D2766';
+    const latestRun = replay.kind === 'latest', bestF = replay.bestF;
+    // a latest attempt races the best so far, drawn as a dashed line on the ruler
+    if (latestRun && bestF > 0) {
+      const [bx] = toScreen(replay.x0 + bestF, 0);
+      if (bx > -60 && bx < W + 60) {
+        html += `<path d="M ${bx} ${topY + 30} V ${H - 34}" stroke="#555D8B" stroke-width="1" stroke-dasharray="4 4" fill="none"/>`;
+        html += `<text x="${bx - 5}" y="${H - 56}" text-anchor="end" font-size="12" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">Best ${bestF.toFixed(2)} m</text>`;
+      }
+    }
     if (Math.abs(mx - sx) > 14) {
       const d = mx > sx ? 1 : -1;
       html += `<path d="M ${sx} ${topY} H ${mx}" stroke="${dimInk}" stroke-width="1" fill="none"/>`;
@@ -293,14 +331,27 @@ async function init() {
     html += `<text x="${(sx + mx) / 2}" y="${topY + 4}" text-anchor="middle" font-size="13" fill="${done ? redInk : '#1D2766'}" style="font-family:Archivo;font-weight:700;font-stretch:75%">${dist.toFixed(2)} m</text>`;
     // the run's clock, and what this gait is: the winner so far of a search
     // narrow canvases keep the score up here, clear of the robot
-    const narrow = W < 560, sc = Math.max(0, score(dist, fell)).toFixed(2);
+    const narrow = W < 560, scN = Math.max(0, score(dist, fell)), sc = scN.toFixed(2);
+    // how a finished latest attempt compares with the best so far
+    let gap = null;
+    if (done && latestRun && bestF !== null) {
+      const d = Math.max(0, bestF) - scN;
+      gap = d < -0.005 ? ['New best', redInk] : d < 0.005 ? ['Ties the best', redInk] : [`${d.toFixed(2)} m short of the best`, '#555D8B'];
+    }
     const stack = [[done ? (fell ? `Fell at ${s.t.toFixed(1)} s` : `Finished at ${TRIAL} s`) : `t = ${s.t.toFixed(1)} s of ${TRIAL}`, done ? redInk : '#555D8B', 12, 600]];
-    if (done && narrow) { stack.push([`Score ${sc} m`, redInk, 15, 800]); if (fell) stack.push(['Falling cuts the score', '#555D8B', 12, 600]); }
-    // this run is the best gait as of when it started; training keeps going while it plays
-    if (replay.tried) stack.push([`Best after ${replay.tried.toLocaleString()} gaits tried`, '#555D8B', 12, 600]);
-    if (replay.fresh) stack.push(['New best', redInk, 12, 600]);
-    const waiting = st.elites.length ? Math.max(0, st.elites[0].f).toFixed(2) : null;
-    if (waiting && st.elites[0].f > replay.f && waiting !== Math.max(0, replay.f).toFixed(2)) stack.push([`Better gait found: ${waiting} m. It plays next.`, '#555D8B', 12, 600]);
+    if (done && narrow) {
+      stack.push([`Score ${sc} m`, redInk, 15, 800]);
+      if (fell) stack.push(['Falling cuts the score', '#555D8B', 12, 600]);
+      if (gap) stack.push([gap[0], gap[1], 12, 700]);
+    }
+    if (latestRun) stack.push([`Latest of ${replay.tried.toLocaleString()} gaits tried`, '#555D8B', 12, 600]);
+    else {
+      // this run is the best gait as of when it started; training keeps going while it plays
+      if (replay.tried) stack.push([`Best after ${replay.tried.toLocaleString()} gaits tried`, '#555D8B', 12, 600]);
+      if (replay.fresh) stack.push(['New best', redInk, 12, 600]);
+      const waiting = st.elites.length ? Math.max(0, st.elites[0].f).toFixed(2) : null;
+      if (waiting && st.elites[0].f > replay.f && waiting !== Math.max(0, replay.f).toFixed(2)) stack.push([`Better gait found: ${waiting} m. It plays next.`, '#555D8B', 12, 600]);
+    }
     let ly = topY + 4;
     stack.forEach(([txt, fill, size, wt], i) => {
       if (i) ly += size + 4;
@@ -314,7 +365,9 @@ async function init() {
       html += `<path d="M ${mx} ${flagY} l ${left ? -16 : 16} 6 l ${left ? 16 : -16} 6 z" fill="${red}"/>`;
       if (!narrow) {
         html += `<text x="${tx}" y="${flagY + 11}" text-anchor="${left ? 'end' : 'start'}" font-size="16" fill="${redInk}" style="font-family:Archivo;font-weight:800;font-stretch:75%">Score ${sc} m</text>`;
-        if (fell) html += `<text x="${tx}" y="${flagY + 28}" text-anchor="${left ? 'end' : 'start'}" font-size="12" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">Falling cuts the score</text>`;
+        let ny = flagY + 28;
+        if (fell) { html += `<text x="${tx}" y="${ny}" text-anchor="${left ? 'end' : 'start'}" font-size="12" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">Falling cuts the score</text>`; ny += 17; }
+        if (gap) html += `<text x="${tx}" y="${ny}" text-anchor="${left ? 'end' : 'start'}" font-size="13" fill="${gap[1]}" style="font-family:Archivo;font-weight:700;font-stretch:75%">${gap[0]}</text>`;
       }
     }
     overlay.innerHTML = html;
@@ -362,6 +415,7 @@ async function init() {
   const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
 
   buildScene();
+  setMode(mode, false);
   replay.start(true);
   render();
   if (reduce && els.play) {
