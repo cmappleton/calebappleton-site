@@ -56,6 +56,13 @@ table{border-collapse:collapse}
   font-stretch:62%;font-weight:850;font-size:25px;line-height:1;letter-spacing:.005em;
 }
 .nav-mark svg{width:28px;height:28px;color:var(--ink);overflow:visible;flex:none}
+[data-mark-svg]{overflow:visible}
+[data-mark-svg] .mark-board,[data-mark-svg] .mark-apple{transform-box:fill-box;transform-origin:50% 50%}
+.mark-trick .mark-board{animation:mark-flip 760ms cubic-bezier(.3,.6,.3,1)}
+.mark-trick .mark-apple{animation:mark-hop 760ms cubic-bezier(.3,.6,.3,1)}
+@keyframes mark-flip{0%{transform:translateY(0) scaleY(1)}25%{transform:translateY(-6px) scaleY(.15)}50%{transform:translateY(-8px) scaleY(-1)}75%{transform:translateY(-6px) scaleY(.15)}100%{transform:translateY(0) scaleY(1)}}
+@keyframes mark-hop{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.mark-trick .mark-board,.mark-trick .mark-apple{animation:none}}
 .nav-links{display:flex;gap:24px;align-items:center}
 .nav-links a{
   text-decoration:none;font-stretch:75%;font-weight:600;font-size:16px;line-height:1;

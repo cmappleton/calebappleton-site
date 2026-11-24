@@ -4,21 +4,36 @@
 
   /* ---- skater-apple mark (static) into every [data-mark-svg] ---- */
   const MARK = `
-    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M 4 25.5 L 24 25.5"/>
-      <path d="M 3.5 25 C 3 25, 3 26, 3.5 26 L 24.5 26 C 25 26, 25 25, 24.5 25"/>
-      <path d="M14 9 C 8 8, 4 12, 4 17 C 4 21, 6.5 24, 10 24 L 18 24 C 21.5 24, 24 21, 24 17 C 24 12, 20 8, 14 9 Z"/>
-      <path d="M14 9 C 14 7, 14.5 5, 16 4"/>
-      <path d="M16 7 C 18.5 4.5, 21 5, 22 7.5 C 20 9, 17.5 8.5, 16 7 Z"/>
+    <g class="mark-apple">
+      <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 9 C 8 8, 4 12, 4 17 C 4 21, 6.5 24, 10 24 L 18 24 C 21.5 24, 24 21, 24 17 C 24 12, 20 8, 14 9 Z"/>
+        <path d="M14 9 C 14 7, 14.5 5, 16 4"/>
+        <path d="M16 7 C 18.5 4.5, 21 5, 22 7.5 C 20 9, 17.5 8.5, 16 7 Z"/>
+      </g>
+      <circle cx="11" cy="16" r="1.6" fill="currentColor"/>
+      <circle cx="17" cy="16" r="1.6" fill="currentColor"/>
+      <circle cx="11.5" cy="15.5" r="0.45" fill="var(--film)"/>
+      <circle cx="17.5" cy="15.5" r="0.45" fill="var(--film)"/>
+      <path d="M11.5 19.5 C 12.5 21, 15.5 21, 16.5 19.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
     </g>
-    <circle cx="7" cy="26.5" r="1.2" fill="currentColor"/>
-    <circle cx="21" cy="26.5" r="1.2" fill="currentColor"/>
-    <circle cx="11" cy="16" r="1.6" fill="currentColor"/>
-    <circle cx="17" cy="16" r="1.6" fill="currentColor"/>
-    <circle cx="11.5" cy="15.5" r="0.45" fill="var(--film)"/>
-    <circle cx="17.5" cy="15.5" r="0.45" fill="var(--film)"/>
-    <path d="M11.5 19.5 C 12.5 21, 15.5 21, 16.5 19.5" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>`;
+    <g class="mark-board">
+      <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 4 25.5 L 24 25.5"/>
+        <path d="M 3.5 25 C 3 25, 3 26, 3.5 26 L 24.5 26 C 25 26, 25 25, 24.5 25"/>
+      </g>
+      <circle cx="7" cy="26.5" r="1.2" fill="currentColor"/>
+      <circle cx="21" cy="26.5" r="1.2" fill="currentColor"/>
+    </g>`;
   document.querySelectorAll('[data-mark-svg]').forEach(svg => { svg.innerHTML = MARK; });
+
+  /* when the homepage apple lands a trick, every logo on the page kickflips with it */
+  let markTimer = 0;
+  document.addEventListener('workcell:trick', () => {
+    const marks = document.querySelectorAll('[data-mark-svg]');
+    marks.forEach(svg => { svg.classList.remove('mark-trick'); svg.getBoundingClientRect(); svg.classList.add('mark-trick'); });
+    clearTimeout(markTimer);
+    markTimer = setTimeout(() => marks.forEach(svg => svg.classList.remove('mark-trick')), 900);
+  });
 
   /* ---- title block: printed date (visitor's day) ---- */
   const printed = document.getElementById('printed-date');

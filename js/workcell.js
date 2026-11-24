@@ -209,6 +209,7 @@ function start() {
     engine = Engine.create({ enableSleeping: true, positionIterations: 10, velocityIterations: 8 });
     engine.gravity.y = 1; engine.gravity.scale = 0.0016;
     items = []; letters = []; dyn = []; byBody.clear(); hold = null; wantGrip = false; pendingRelease = false;
+    trick = null; trickNote = null;
 
     // table: the top at y = 0, the front face fills the strip below
     const depthDown = L.tablePx / (L.s * CT) + 1;
@@ -280,7 +281,7 @@ function start() {
       const wheels = [-0.36, 0.36].map(dx => Bodies.circle((ax + dx) * PU, -0.065 * PU, 0.065 * PU, { friction: 0.9, restitution: 0.05, density: 0.002, collisionFilter: { group: -2, category: 1, mask: ALL } }));
       const pins = wheels.map(w => Constraint.create({ bodyA: chassis, pointA: { x: w.position.x - chassis.position.x, y: w.position.y - chassis.position.y }, bodyB: w, stiffness: 0.95, length: 0 }));
       Composite.add(engine.world, [...wheels, ...pins]);
-      const it = { kind: 'apple', body: chassis, group: model.group, anchor: null, off: { x: ax - chassis.position.x / PU, y: chassis.position.y / PU }, href: null, label: null, home: { x: chassis.position.x, y: chassis.position.y }, lastBelt: -9, lastHeld: -9, wheels, wheelMeshes: model.wheels };
+      const it = { kind: 'apple', body: chassis, group: model.group, anchor: null, off: { x: ax - chassis.position.x / PU, y: chassis.position.y / PU }, href: null, label: null, home: { x: chassis.position.x, y: chassis.position.y }, lastBelt: -9, lastHeld: -9, wheels, wheelMeshes: model.wheels, board: model.board, setFace: model.setFace };
       it.wheelHome = wheels.map(w => ({ x: w.position.x, y: w.position.y }));
       appleRig = it;
       addDynamic(it);
@@ -443,6 +444,7 @@ function start() {
     body.frictionAir = 0.05;
     Sleeping.set(body, false);
     hold = { it, body, c, dy: (at.y / -PU) - t.y };
+    if (it.setFace) it.setFace('surprised');
     if (it.el) it.el.classList.add('is-held');
     const w = it.kind === 'letter' ? it.wPx / L.s : 0.3;
     arm.openTarget = Math.min(1, Math.max(0.12, (w * 0.9) / L.A.maxOpen));
@@ -455,6 +457,7 @@ function start() {
     settle(hold.it);
     hold.body.frictionAir = 0.01;
     if (hold.it.el) hold.it.el.classList.remove('is-held');
+    if (hold.it.setFace) hold.it.setFace('happy');
     hold.it.lastHeld = now;
     hold = null; arm.openTarget = 1; pendingRelease = false;
   }
@@ -474,7 +477,56 @@ function start() {
     });
   }
 
+  /* Easter egg: the skater apple does a trick when it rides the belt to the edge */
+  const TRICKS = [['Ollie', 0, 0], ['Kickflip', -2 * Math.PI, 0], ['Heelflip', 2 * Math.PI, 0], ['Pop shove-it', 0, Math.PI], ['360 flip', -2 * Math.PI, 2 * Math.PI]];
+  let trick = null, trickNote = null, lastTrick = -1;
+  function startTrick(it) {
+    let k = Math.floor(Math.random() * TRICKS.length);
+    if (k === lastTrick) k = (k + 1) % TRICKS.length;   // never the same trick twice in a row
+    lastTrick = k;
+    const [name, spinX, spinY] = TRICKS[k];
+    const x0 = it.body.position.x / PU, y0 = -it.body.position.y / PU;
+    const vy = L.wide ? 4.4 : 3.8;
+    trick = { it, name, spinX, spinY, t: 0, x0, y0, vx: L.wide ? 2.7 : 2.2, vy, land: 2 * vy / 9.8 };
+    trickNote = { name, x: x0 + 0.4, y: y0 + (L.wide ? 1.9 : 1.6), until: now + 1.9 };
+    setItemMask(it, 0);
+    if (it.setFace) it.setFace('happy');
+    document.dispatchEvent(new CustomEvent('workcell:trick', { detail: { name } }));
+    track('Apple trick', { trick: name });
+  }
+  function trickTick(dt) {
+    if (!trick) {
+      const a = appleRig;
+      if (a && (!hold || hold.it !== a) && now - a.lastBelt < 0.2 && now - (a.trickedAt || -9) > 4 && a.body.position.x / PU > L.Wu - (L.wide ? 3.4 : 2.6)) startTrick(a);
+      return;
+    }
+    const tr = trick, it = tr.it;
+    tr.t = Math.min(tr.t + dt, tr.land);
+    const x = tr.x0 + tr.vx * tr.t, y = tr.y0 + tr.vy * tr.t - 4.9 * tr.t * tr.t;
+    Body.setPosition(it.body, { x: x * PU, y: -y * PU }); Body.setAngle(it.body, 0);
+    Body.setVelocity(it.body, { x: 0, y: 0 }); Body.setAngularVelocity(it.body, 0);
+    it.wheels.forEach((w, i) => {
+      Body.setPosition(w, { x: x * PU + (it.wheelHome[i].x - it.home.x), y: -y * PU + (it.wheelHome[i].y - it.home.y) });
+      Body.setVelocity(w, { x: 0, y: 0 });
+    });
+    const k = Math.min(1, tr.t / (tr.land * 0.8)), e = (1 - Math.cos(k * Math.PI)) / 2;
+    it.board.rotation.set(tr.spinX * e, tr.spinY * e, 0);
+    // landed: hand it back to the physics, rolling on, and it rides off the edge and skates back in
+    if (tr.t >= tr.land) {
+      endTrick();
+      [it.body, ...it.wheels].forEach(b => Body.setVelocity(b, { x: tr.vx * PU / 60, y: 0 }));
+    }
+  }
+  function endTrick() {
+    if (!trick) return;
+    trick.it.board.rotation.set(0, 0, 0);
+    trick.it.trickedAt = now;
+    setItemMask(trick.it, DEFAULT_MASK);
+    trick = null;
+  }
+
   function resetBody(it) {
+    if (trick && trick.it === it) endTrick();
     ghosts.delete(it); setItemMask(it, DEFAULT_MASK);
     const b = it.body;
     Body.setPosition(b, it.home); Body.setAngle(b, 0);
@@ -492,6 +544,7 @@ function start() {
       if (b.position.x > right) {
         if (it.href && now - it.lastBelt < 1.5) ship(it);
         else if (it.kind === 'apple') {
+          if (trick && trick.it === it) endTrick();
           Body.setPosition(b, { x: -0.8 * PU, y: it.home.y - 0.3 * PU }); Body.setVelocity(b, { x: 3.5, y: 0 });
           it.wheels.forEach((w, i) => { Body.setPosition(w, { x: -0.8 * PU + (it.wheelHome[i].x - it.home.x), y: it.wheelHome[i].y - 0.3 * PU }); Body.setVelocity(w, { x: 3.5, y: 0 }); });
         } else resetBody(it);
@@ -545,9 +598,16 @@ function start() {
     nodes.hintHead = mk('path', { fill: 'none', stroke: '#F0441C', 'stroke-width': 1.5 }, red);
     nodes.hintText = mk('text', { fill: '#BF2F0E', 'font-size': L.wide ? 14 : 12, class: 'hint', 'text-anchor': 'end' }, red);
     nodes.msg = mk('text', { fill: '#BF2F0E', 'font-size': L.wide ? 16 : 13, class: 'hint', 'text-anchor': 'end' });
+    nodes.trick = mk('text', { fill: '#BF2F0E', 'font-size': L.wide ? 26 : 19, class: 'callout', 'text-anchor': 'end' });
   }
 
   function drawOverlay() {
+    if (trickNote && now < trickNote.until) {
+      const [X, Y] = toScreen(trickNote.x, trickNote.y);
+      nodes.trick.textContent = trickNote.name;
+      nodes.trick.setAttribute('x', Math.min(W - 16, X).toFixed(1)); nodes.trick.setAttribute('y', Y.toFixed(1));
+      nodes.trick.setAttribute('opacity', Math.min(1, (trickNote.until - now) / 0.45).toFixed(2));
+    } else if (nodes.trick.textContent) nodes.trick.textContent = '';
     // callouts follow their objects
     nodes.callouts.forEach(c => {
       const b = c.it.body, a = -b.angle;
@@ -631,6 +691,7 @@ function start() {
     Engine.update(engine, STEP);
     if (ghosts.size) ghosts.forEach(it => { if (!overlapsOthers(it)) { setItemMask(it, DEFAULT_MASK); ghosts.delete(it); } });
     driveBelt();
+    trickTick(dt);
     checkBounds();
     conveyorG.userData.advance(BELT_V / PU);
   }

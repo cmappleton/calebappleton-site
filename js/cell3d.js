@@ -498,6 +498,10 @@ export function envelope(pen, label) {
 export function apple(pen) {
   const g = new THREE.Group();
   const wheels = [];
+  // deck, trucks and wheels live in one group pivoting at the board's middle, so it can flip for tricks
+  const board = new THREE.Group();
+  board.position.y = 0.13;
+  g.add(board);
   const deck = new THREE.Shape();
   deck.moveTo(-0.5, 0.16); deck.lineTo(0.5, 0.16);
   deck.quadraticCurveTo(0.58, 0.16, 0.62, 0.23); deck.lineTo(0.6, 0.245);
@@ -505,15 +509,15 @@ export function apple(pen) {
   deck.quadraticCurveTo(-0.56, 0.195, -0.6, 0.245); deck.lineTo(-0.62, 0.23);
   deck.quadraticCurveTo(-0.58, 0.16, -0.5, 0.16);
   const dg = new THREE.ExtrudeGeometry(deck, { depth: 0.26, bevelEnabled: true, bevelThickness: 0.01, bevelSize: 0.008, bevelSegments: 2, curveSegments: 12 });
-  dg.translate(0, 0, -0.13);
-  g.add(pen.solid(dg, 0.72, { threshold: 50 }));
+  dg.translate(0, -0.13, -0.13);
+  board.add(pen.solid(dg, 0.72, { threshold: 50 }));
   [-0.36, 0.36].forEach(x => {
-    const truck = pen.solid(new THREE.BoxGeometry(0.1, 0.05, 0.2), 0.15); truck.position.set(x, 0.13, 0); g.add(truck);
+    const truck = pen.solid(new THREE.BoxGeometry(0.1, 0.05, 0.2), 0.15); truck.position.set(x, 0, 0); board.add(truck);
     [-0.12, 0.12].forEach(z => {
       const w = new THREE.Group();
       w.add(pen.solid(new THREE.CylinderGeometry(0.065, 0.065, 0.05, 24).rotateX(Math.PI / 2), 0.05));
       const mark = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.07, 0.006), pen.hatch(0.9)); mark.position.set(0, 0.0, 0.028); w.add(mark);
-      w.position.set(x, 0.065, z); g.add(w); wheels.push(w);
+      w.position.set(x, 0.065 - 0.13, z); board.add(w); wheels.push(w);
     });
   });
   const prof = [[0, 0.0], [0.12, 0.0], [0.26, 0.05], [0.36, 0.17], [0.4, 0.33], [0.37, 0.49], [0.28, 0.61], [0.14, 0.65], [0.05, 0.6], [0, 0.585]];
@@ -524,14 +528,27 @@ export function apple(pen) {
   const leaf = pen.solid(new THREE.SphereGeometry(1, 16, 10).scale(0.12, 0.018, 0.055), 0.35, { edges: false });
   leaf.position.set(0.11, 0.86, 0.02); leaf.rotation.z = 0.35; g.add(leaf);
   const r = y => { for (let i = 1; i < prof.length; i++) if (prof[i][1] >= y) { const [x0, y0] = prof[i - 1], [x1, y1] = prof[i]; return x0 + (x1 - x0) * (y - y0) / (y1 - y0); } return 0; };
-  [-0.1, 0.1].forEach(x => {
+  const eyes = [-0.1, 0.1].map(x => {
     const y = 0.36, z = Math.sqrt(Math.max(0, r(y) ** 2 - x * x));
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.032, 14, 10), pen.hatch(1)); eye.position.set(x, 0.19 + y, z - 0.01); g.add(eye);
+    return eye;
   });
   const smile = [];
   for (let i = 0; i <= 12; i++) { const x = -0.1 + 0.2 * i / 12, y = 0.24 - 0.045 * (1 - (x / 0.1) ** 2); smile.push(V3(x, 0.19 + y, Math.sqrt(Math.max(0, r(y) ** 2 - x * x)) - 0.004)); }
-  g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(smile), 24, 0.011, 6), pen.hatch(1)));
-  return { group: g, anchor: null, size: [1.24, 0.9], wheels };
+  const smileMesh = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(smile), 24, 0.011, 6), pen.hatch(1));
+  g.add(smileMesh);
+  // a surprised "O" for when it gets picked up
+  const oMouth = new THREE.Mesh(new THREE.TorusGeometry(0.042, 0.013, 8, 22), pen.hatch(1));
+  oMouth.position.set(0, 0.19 + 0.215, r(0.215) - 0.004);
+  oMouth.visible = false;
+  g.add(oMouth);
+  function setFace(mood) {
+    const surprised = mood === 'surprised';
+    eyes.forEach(e => e.scale.setScalar(surprised ? 1.65 : 1));
+    smileMesh.visible = !surprised;
+    oMouth.visible = surprised;
+  }
+  return { group: g, anchor: null, size: [1.24, 0.9], wheels, board, setFace };
 }
 
 export function shelf(pen, length, depth = 1.15) {
