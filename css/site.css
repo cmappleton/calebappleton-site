@@ -208,7 +208,7 @@ table{border-collapse:collapse}
 /* ========== SHEET 2 · ABOUT ========== */
 .about-grid{display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,1fr);gap:clamp(28px,4.5vw,72px);align-items:start}
 .xv{position:sticky;top:calc(var(--nav-h) + 28px)}
-.xv-gl{position:relative;width:100%;aspect-ratio:1/1.08;max-height:76vh}
+.xv-gl{position:relative;width:100%;aspect-ratio:1/1.08;max-height:76vh;-webkit-tap-highlight-color:transparent}
 .xv-gl canvas{display:block;width:100%;height:100%}
 .xv-gl svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
 .xv-controls{display:flex;align-items:center;gap:14px;margin-top:14px;font-stretch:75%;font-weight:650;font-size:15px}
@@ -442,6 +442,8 @@ input[type="range"]:focus-visible{outline:3px solid var(--red);outline-offset:2p
   .grid-table td,.grid-table th{border:0 !important;padding:1px 0}
 
   .plist tr{display:grid;grid-template-columns:2.6em 1fr;column-gap:10px}
+  .plist tr.is-hot{background:var(--red-wash)}
+  .plist tr.is-hot td{background:none}
   .plist td:first-child{grid-row:1 / span 2;width:auto;text-align:left;padding-top:2px}
   .plist td:nth-child(2){white-space:normal}
   .plist td:nth-child(3){color:var(--ink-2);font-size:14px}

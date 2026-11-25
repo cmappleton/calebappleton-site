@@ -1,7 +1,9 @@
 /* About: the places that shaped Caleb, drawn as an espresso machine pulled
    apart. The same parts sit assembled on the homepage shelf. Texas is the
    base, Bison is the cup tray on top, and the side parts are the constants.
-   Balloons key to the parts list; hover either one to light up both. */
+   Balloons key to the parts list; hover either one to light up both.
+   Tapping or clicking a part or its balloon also scrolls its row into view,
+   since on phones the list sits below the drawing. */
 import * as THREE from 'three';
 import * as C from './cell3d.js';
 
@@ -70,7 +72,7 @@ async function init() {
 
   const project = v => { const p = v.clone().project(camera); return [(p.x + 1) / 2 * W, (1 - p.y) / 2 * H]; };
 
-  let hot = null;
+  let hot = null, spots = [];
   function pose() {
     parts.forEach(p => p.group.position.copy(p.explode).multiplyScalar(e));
     renderer.render(scene, camera);
@@ -106,7 +108,9 @@ async function init() {
       if (overflow > 0) list.forEach(r => { r.by -= overflow; });
       return list;
     };
+    spots = [];
     const balloon = (r, cx) => {
+      spots.push({ n: r.n, x: cx, y: r.by });
       const isHot = hot === r.n;
       const ink = isHot ? '#F0441C' : '#1D2766';
       const edge = cx > W / 2 ? cx - 13 : cx + 13;
@@ -128,18 +132,40 @@ async function init() {
     if (table) table.querySelectorAll('tr[data-item]').forEach(tr => tr.classList.toggle('is-hot', +tr.dataset.item === n));
     drawBalloons();
   }
-  host.addEventListener('pointermove', ev => {
-    const r = host.getBoundingClientRect();
-    mouse.set(((ev.clientX - r.left) / W) * 2 - 1, -((ev.clientY - r.top) / H) * 2 + 1);
+  // the balloon or part under a point on screen, or null
+  function pick(clientX, clientY, slop) {
+    const r = host.getBoundingClientRect(), x = clientX - r.left, y = clientY - r.top;
+    const near = spots.find(s => Math.hypot(s.x - x, s.y - y) <= 13 + slop);
+    if (near) return near.n;
+    mouse.set((x / W) * 2 - 1, -(y / H) * 2 + 1);
     ray.setFromCamera(mouse, camera);
     const hits = ray.intersectObjects(parts.map(p => p.group), true);
-    if (!hits.length) { setHot(null); return; }
+    if (!hits.length) return null;
     let o = hits[0].object;
     while (o.parent && o.parent !== scene) o = o.parent;
-    const p = parts.find(x => x.group === o);
-    setHot(p ? p.n : null);
+    const p = parts.find(q => q.group === o);
+    return p ? p.n : null;
+  }
+  host.addEventListener('pointermove', ev => {
+    if (ev.pointerType !== 'mouse') return;
+    const n = pick(ev.clientX, ev.clientY, 3);
+    host.style.cursor = n ? 'pointer' : '';
+    setHot(n);
   });
-  host.addEventListener('pointerleave', () => setHot(null));
+  host.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse') setHot(null); });
+  // tap or click: light up the part and bring its row into view
+  host.addEventListener('click', ev => {
+    const n = pick(ev.clientX, ev.clientY, 9);
+    setHot(n);
+    const tr = n && table && table.querySelector(`tr[data-item="${n}"]`);
+    if (!tr) return;
+    const b = tr.getBoundingClientRect(), navH = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--nav-h')) || 0;
+    if (b.top >= navH && b.bottom <= window.innerHeight) return;
+    // beside the drawing (desktop), scroll just enough to show the row so the drawing stays put;
+    // below it (phones), bring the row to the middle of the screen
+    const beside = table.getBoundingClientRect().left >= host.getBoundingClientRect().right;
+    tr.scrollIntoView({ block: beside ? 'nearest' : 'center', behavior: reduce ? 'auto' : 'smooth' });
+  });
   if (table) table.querySelectorAll('tr[data-item]').forEach(tr => {
     tr.addEventListener('mouseenter', () => setHot(+tr.dataset.item));
     tr.addEventListener('mouseleave', () => setHot(null));
