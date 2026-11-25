@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Share card</title>
+<!-- One share card per page. render.mjs opens this at 1200x630 with ?page=<name> and
+     screenshots it. Text and photos come from the live pages, so the cards follow edits. -->
+<script>try { localStorage.setItem('calebappleton.howto.v1', '1'); } catch (_) {}</script>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/site.css">
+<script type="importmap">{"imports":{"three":"/js/vendor/three.min.js","three/addons/geometries/RoundedBoxGeometry.js":"/js/vendor/three.min.js","three/addons/lines/LineMaterial.js":"/js/vendor/three.min.js","three/addons/lines/LineSegments2.js":"/js/vendor/three.min.js","three/addons/lines/LineSegmentsGeometry.js":"/js/vendor/three.min.js","three/addons/utils/BufferGeometryUtils.js":"/js/vendor/three.min.js"}}</script>
+<style>
+  html,body{width:1200px;height:630px;overflow:hidden;background:var(--film)}
+  .card{position:absolute;inset:14px;border:2px solid var(--ink);padding:18px}
+  .card .zones-x{left:18px;right:18px;height:18px}
+  .card .zones-y{top:18px;bottom:18px;width:18px}
+  .og-inner{height:100%;border:1px solid var(--ink);display:flex;flex-direction:column}
+  .og-inner .stage{flex:1 1 auto;min-height:0;cursor:default}
+  .stage-tools{display:none !important}
+
+  /* title block along the bottom, as on the homepage card */
+  .og-tb{flex:none;display:grid;grid-template-columns:1.5fr 1.35fr 1fr 78px;border-top:2px solid var(--ink)}
+  .og-tb .tb{padding:9px 14px;border-bottom:0}
+  .og-tb .tb:last-child{border-right:0;align-items:center}
+  .og-tb h1{font-stretch:62%;font-weight:850;font-size:40px;line-height:.92;letter-spacing:-.005em}
+  .og-tb .tb-v{font-size:17px}
+  .og-tb .tb-sub{font-size:16px}
+  .og-tb svg{width:44px;height:44px;color:var(--ink)}
+
+  /* page cards: the page name big on the left, the page's own drawing or content on the right */
+  .og-page{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:auto minmax(0,1fr);gap:34px;padding:26px 30px 24px 34px}
+  .og-name{align-self:end;font-weight:900;font-stretch:62%;font-size:150px;line-height:.82;text-transform:uppercase;color:var(--ink);white-space:nowrap}
+  .og-name .row{display:block}
+  .og-vis{position:relative;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center}
+  .og-vis canvas,.og-vis img.og-shot{display:block;max-width:100%;max-height:100%}
+  .og-vis img.og-framed{border:1px solid var(--ink)}
+
+  .og-list{width:100%;display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--ink)}
+  .og-list li{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline;padding:14px 16px;border-bottom:1px solid var(--ink)}
+  .og-list li:nth-child(odd){border-right:1px solid var(--ink)}
+  .og-list li:nth-last-child(-n+2){border-bottom:0}
+  .og-list .balloon{grid-row:span 2;font-size:14px;align-self:center}
+  .og-list b{font-stretch:62%;font-weight:850;font-size:32px;line-height:1}
+  .og-list span{font-size:15px;line-height:1.25;color:var(--ink-2)}
+
+  .og-docs{width:100%;font-size:17px}
+  .og-docs th,.og-docs td{padding:9px 12px}
+  .og-docs td:first-child{font-weight:600}
+  .og-docs td:not(:first-child){white-space:nowrap}
+
+  .og-photos{width:100%;height:100%;display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+  .og-photos figure{display:flex;flex-direction:column;min-height:0}
+  .og-photos img{flex:1 1 auto;min-height:0;width:100%;object-fit:cover;border:1px solid var(--ink)}
+  .og-photos figcaption{display:flex;flex-direction:column;gap:2px;margin-top:8px;font-size:15px;line-height:1.25}
+  .og-photos figcaption b{font-weight:700}
+  .og-photos figcaption span{color:var(--ink-2)}
+  #tb-url{white-space:nowrap}
+
+  .og-mail{align-self:center;width:100%;border:1px solid var(--ink);padding:30px 32px}
+  .og-mail .tb-k{font-size:15px}
+  .og-mail p.big{font-stretch:62%;font-weight:850;font-size:82px;line-height:.9;letter-spacing:-.01em;margin:10px 0 18px}
+  .og-mail p.note{font-size:20px;line-height:1.35;max-width:30em}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="zones" aria-hidden="true">
+    <div class="zones-x zones-top"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+    <div class="zones-x zones-bottom"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span></div>
+    <div class="zones-y zones-left"><span>A</span><span>B</span><span>C</span></div>
+    <div class="zones-y zones-right"><span>A</span><span>B</span><span>C</span></div>
+  </div>
+  <div class="og-inner" id="inner">
+    <div class="og-tb">
+      <div class="tb"><span class="tb-k">Title</span><h1>Caleb Appleton</h1><span class="tb-sub">Partner at Bison Ventures</span></div>
+      <div class="tb"><span class="tb-k" id="tb-k2">Focus</span><span class="tb-v" id="tb-v2">Physical AI and human health</span></div>
+      <div class="tb"><span class="tb-k">Online</span><span class="tb-v" id="tb-url">calebappleton.com</span></div>
+      <div class="tb"><svg viewBox="0 0 28 28" aria-hidden="true" data-mark-svg></svg></div>
+    </div>
+  </div>
+</div>
+<script src="/js/site.js"></script>
+<script type="module">
+const page = new URLSearchParams(location.search).get('page') || 'home';
+const inner = document.getElementById('inner');
+const tb = inner.querySelector('.og-tb');
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fetchDoc = async path => new DOMParser().parseFromString(await (await fetch(path)).text(), 'text/html');
+const loadImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; });
+
+// Crop a capture to the part that isn't transparent.
+async function trimmed(src, pad = 12) {
+  const img = await loadImg(src);
+  const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, c.width, c.height).data;
+  let x0 = c.width, y0 = c.height, x1 = 0, y1 = 0;
+  for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) {
+    if (d[(y * c.width + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+  }
+  x0 = Math.max(0, x0 - pad); y0 = Math.max(0, y0 - pad); x1 = Math.min(c.width - 1, x1 + pad); y1 = Math.min(c.height - 1, y1 + pad);
+  const out = document.createElement('canvas'); out.width = x1 - x0 + 1; out.height = y1 - y0 + 1;
+  out.getContext('2d').drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+  out.style.width = out.width / 2 + 'px';   // captures are taken at 2x
+  return out;
+}
+
+function fit(node, max, start) {
+  let px = start;
+  node.style.fontSize = px + 'px';
+  while (px > 8 && node.scrollWidth > max) { px -= 2; node.style.fontSize = px + 'px'; }
+}
+
+async function homeCard() {
+  // The live workcell, which render.mjs then drives to carry the espresso machine.
+  const stage = el('div', 'stage');
+  stage.id = 'stage';
+  stage.innerHTML = '<div class="name-blocks"><span class="row">CALEB</span> <span class="row">APPLETON</span></div><div class="stage-gl"></div><svg class="stage-notes"></svg><div class="stage-tools"><button type="button" class="tool" data-act="tilt" hidden>Tilt</button><button type="button" class="tool" data-act="howto">How it works</button><button type="button" class="tool" data-act="reset">Reset</button></div><div class="howto" hidden><button type="button" data-howto="close">Try it</button></div>';
+  inner.insertBefore(stage, tb);
+  await new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js'; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+  await import('/js/workcell.js');
+}
+
+async function pageCard() {
+  const path = '/' + page + '/';
+  const [doc, home] = await Promise.all([fetchDoc(path), fetchDoc('/')]);
+  const name = (page === 'robot-training' ? 'Robot training' : doc.querySelector('h1').textContent).trim();
+  const words = name.split(/\s+/);
+  const row = home.querySelector(`.contents a[href="${path}"]`)?.closest('tr');
+  document.getElementById('tb-k2').textContent = (doc.querySelector('.sheet-no')?.textContent || '').trim();
+  document.getElementById('tb-v2').textContent = row ? row.querySelector('.what').textContent.trim() : '';
+  document.getElementById('tb-url').textContent = 'calebappleton.com/' + page;
+
+  const wrap = el('div', 'og-page');
+  const nm = el('div', 'og-name', words.map(w => `<span class="row">${esc(w)}</span>`).join(''));
+  const vis = el('div', 'og-vis');
+  wrap.append(nm, vis);
+  inner.insertBefore(wrap, tb);
+  await document.fonts.ready;
+  // The name takes at most 44% of the width (less for the robot), so what's beside it has room.
+  fit(nm, (page === 'robot-training' ? 0.36 : 0.44) * wrap.clientWidth, 150);
+  fit(document.getElementById('tb-url'), document.getElementById('tb-url').parentNode.clientWidth - 28, 17);
+
+  if (page === 'about') {
+    vis.appendChild(await trimmed('/tools/og/build/about.png'));
+  } else if (page === 'robot-training') {
+    const img = await loadImg('/tools/og/build/robot-training.png');
+    img.className = 'og-shot og-framed';
+    vis.appendChild(img);
+  } else if (page === 'companies') {
+    const rows = [...doc.querySelectorAll('.bom tbody tr')].filter(tr => tr.querySelector('.co')).slice(0, 6);
+    vis.appendChild(el('ol', 'og-list', rows.map((tr, i) => {
+      const td = tr.querySelectorAll('td');
+      return `<li><span class="balloon">${i + 1}</span><b>${esc(td[0].textContent.trim())}</b><span>${esc(td[2].textContent.trim())}</span></li>`;
+    }).join('')));
+  } else if (page === 'writing') {
+    const rows = [...doc.querySelectorAll('.docs tbody tr')].filter(tr => tr.querySelector('.where')).slice(0, 5);
+    vis.appendChild(el('table', 'grid-table og-docs', '<thead><tr><th scope="col">Title</th><th scope="col">Where</th><th scope="col">When</th></tr></thead><tbody>' + rows.map(tr => {
+      const td = tr.querySelectorAll('td');
+      return `<tr><td>${esc(td[0].textContent.trim())}</td><td>${esc(td[1].textContent.trim())}</td><td>${esc(td[2].textContent.trim())}</td></tr>`;
+    }).join('') + '</tbody>'));
+  } else if (page === 'adventures') {
+    const figs = [...doc.querySelectorAll('.adv figure')].slice(0, 2);
+    vis.appendChild(el('div', 'og-photos', figs.map(f => `<figure><img src="${f.querySelector('img').getAttribute('src')}" alt=""><figcaption><b>${esc(f.querySelector('b').textContent)}</b><span>${esc(f.querySelector('figcaption span').textContent)}</span></figcaption></figure>`).join('')));
+    await Promise.all([...vis.querySelectorAll('img')].map(i => i.complete ? 0 : new Promise(r => { i.onload = i.onerror = r; })));
+  } else if (page === 'contact') {
+    const big = doc.querySelector('.contact-big').textContent.trim();
+    const note = (doc.querySelector('.contact-note')?.textContent || '').trim();
+    vis.appendChild(el('div', 'og-mail', `<span class="tb-k">Email</span><p class="big">${esc(big)}</p><p class="note">${esc(note)}</p>`));
+  }
+}
+
+try {
+  if (page === 'home') await homeCard(); else await pageCard();
+  await document.fonts.ready;
+  window.__ready = true;
+} catch (err) {
+  window.__ready = 'error: ' + err.message;
+}
+</script>
+</body>
+</html>
