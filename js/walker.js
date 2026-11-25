@@ -14,7 +14,7 @@ const view = document.getElementById('rig-canvas');
 if (view) init();
 
 /* ---------- the body, physics and scoring live in gaitsim.js, which the server runs too ---------- */
-import { LEGS, GLEN, TRIAL, STEPS, ELITE, RANGE, randomGenome, clampGenome, makeSim, step, fallen, score, evaluate } from './gaitsim.js';
+import { LEGS, GLEN, TRIAL, STEPS, ELITE, RANGE, FALL_KEEP, FALL_COST, randomGenome, clampGenome, makeSim, step, fallen, score, evaluate } from './gaitsim.js';
 // every visitor trains the same robot: gaitshare.js seeds from the shared best gaits and reports back
 import { connectShare } from './gaitshare.js';
 
@@ -327,11 +327,17 @@ async function init() {
       html += `<path d="M ${sx + d * 8} ${topY - 4} L ${sx} ${topY} L ${sx + d * 8} ${topY + 4} M ${mx - d * 8} ${topY - 4} L ${mx} ${topY} L ${mx - d * 8} ${topY + 4}" stroke="${dimInk}" stroke-width="1" fill="none"/>`;
       html += `<path d="M ${mx} ${topY - 8} V ${toScreen(mid, s.y[2] + 0.2)[1]}" stroke="#A9AFC6" stroke-width="1" fill="none"/>`;
     }
-    html += `<rect x="${(sx + mx) / 2 - 30}" y="${topY - 9}" width="60" height="18" fill="#E8EAE4"/>`;
-    html += `<text x="${(sx + mx) / 2}" y="${topY + 4}" text-anchor="middle" font-size="13" fill="${done ? redInk : '#1D2766'}" style="font-family:Archivo;font-weight:700;font-stretch:75%">${dist.toFixed(2)} m</text>`;
+    // the distance sits midway along the part of the arrow that is on screen, so it stays
+    // visible after the start line scrolls away
+    const lo = Math.max(Math.min(sx, mx), 12), hi = Math.min(Math.max(sx, mx), W - 12);
+    const lx = hi - lo > 70 ? (lo + hi) / 2 : (sx + mx) / 2;
+    html += `<rect x="${lx - 30}" y="${topY - 9}" width="60" height="18" fill="#E8EAE4"/>`;
+    html += `<text x="${lx}" y="${topY + 4}" text-anchor="middle" font-size="13" fill="${done ? redInk : '#1D2766'}" style="font-family:Archivo;font-weight:700;font-stretch:75%">${dist.toFixed(2)} m</text>`;
     // the run's clock, and what this gait is: the winner so far of a search
     // narrow canvases keep the score up here, clear of the robot
     const narrow = W < 560, scN = Math.max(0, score(dist, fell)), sc = scN.toFixed(2);
+    // a fall's score is well short of where the robot stopped, so show the sum
+    const cut = scN > 0 ? ['Falling cuts the score to', `${Math.round(FALL_KEEP * 100)}% of ${dist.toFixed(2)} m, minus ${FALL_COST} m`] : ['Falling cuts the score to zero'];
     // how a finished latest attempt compares with the best so far
     let gap = null;
     if (done && latestRun && bestF !== null) {
@@ -341,7 +347,7 @@ async function init() {
     const stack = [[done ? (fell ? `Fell at ${s.t.toFixed(1)} s` : `Finished at ${TRIAL} s`) : `t = ${s.t.toFixed(1)} s of ${TRIAL}`, done ? redInk : '#555D8B', 12, 600]];
     if (done && narrow) {
       stack.push([`Score ${sc} m`, redInk, 15, 800]);
-      if (fell) stack.push(['Falling cuts the score', '#555D8B', 12, 600]);
+      if (fell) cut.forEach(line => stack.push([line, '#555D8B', 12, 600]));
       if (gap) stack.push([gap[0], gap[1], 12, 700]);
     }
     if (latestRun) stack.push([`Latest of ${replay.tried.toLocaleString()} gaits tried`, '#555D8B', 12, 600]);
@@ -366,7 +372,7 @@ async function init() {
       if (!narrow) {
         html += `<text x="${tx}" y="${flagY + 11}" text-anchor="${left ? 'end' : 'start'}" font-size="16" fill="${redInk}" style="font-family:Archivo;font-weight:800;font-stretch:75%">Score ${sc} m</text>`;
         let ny = flagY + 28;
-        if (fell) { html += `<text x="${tx}" y="${ny}" text-anchor="${left ? 'end' : 'start'}" font-size="12" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">Falling cuts the score</text>`; ny += 17; }
+        if (fell) { html += `<text x="${tx}" y="${ny}" text-anchor="${left ? 'end' : 'start'}" font-size="12" fill="#555D8B" style="font-family:Archivo;font-weight:600;font-stretch:75%">${cut.join(' ')}</text>`; ny += 17; }
         if (gap) html += `<text x="${tx}" y="${ny}" text-anchor="${left ? 'end' : 'start'}" font-size="13" fill="${gap[1]}" style="font-family:Archivo;font-weight:700;font-stretch:75%">${gap[0]}</text>`;
       }
     }

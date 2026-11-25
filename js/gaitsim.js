@@ -121,7 +121,8 @@ export function step(s, g) {
 }
 
 export const fallen = s => s.y[2] < 0.25 || s.y[0] < 0.08 || s.y[1] < 0.08 || s.y[2] < Math.min(s.y[0], s.y[1]);
-export const score = (dist, fell) => fell ? dist * 0.4 - 0.5 : dist;   // falling costs most of the distance
+export const FALL_KEEP = 0.4, FALL_COST = 0.5;   // a fall keeps 40% of the distance, minus 0.5 m
+export const score = (dist, fell) => fell ? dist * FALL_KEEP - FALL_COST : dist;
 
 // distance travelled in TRIAL seconds, scored
 export function evaluate(g) {
